@@ -194,91 +194,136 @@
             container.style.color = type === 'success' ? '#34d399' : '#f97316';
         }
 
+        function getFirebaseErrorMessage(err) {
+            if (!err || !err.code) return err.message || 'Authentication failed.';
+            switch (err.code) {
+                case 'auth/user-not-found':
+                    return 'No account found with this email.';
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    return 'Incorrect email or password.';
+                case 'auth/email-already-in-use':
+                    return 'An account with this email already exists.';
+                case 'auth/weak-password':
+                    return 'Password is too weak. Please use at least 6 characters.';
+                case 'auth/invalid-email':
+                    return 'Please enter a valid email address.';
+                case 'auth/popup-closed-by-user':
+                    return 'Sign-in popup was closed before completion.';
+                case 'auth/network-request-failed':
+                    return 'Network error. Please check your internet connection.';
+                default:
+                    return err.message;
+            }
+        }
+
+        async function syncWithBackend(idToken, customUsername) {
+            const res = await fetch('/api/auth/firebase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken, username: customUsername })
+            });
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                throw new Error('Server returned non-JSON response.');
+            }
+            if (!res.ok) {
+                throw new Error(data.error || 'Backend session sync failed.');
+            }
+            localStorage.setItem('ag_token', data.token);
+            window.location.href = nextPage;
+        }
+
         document.getElementById('google-signin').addEventListener('click', async () => {
+            document.getElementById('auth-error').innerText = '';
             try {
                 const result = await auth.signInWithPopup(provider);
                 const idToken = await result.user.getIdToken();
-                const res = await fetch('/api/auth/firebase', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ idToken })
-                });
-                const text = await res.text();
-                const contentType = res.headers.get('content-type') || '';
-                if (!contentType.includes('application/json')) {
-                    console.error('Non-JSON response from /api/auth/firebase:', text);
-                    throw new Error('Google sign in failed: server returned non-JSON response. Check server logs or restart the server.');
-                }
-                const data = JSON.parse(text);
-                if (res.ok) {
-                    localStorage.setItem('ag_token', data.token);
-                    window.location.href = nextPage;
-                } else {
-                    document.getElementById('auth-error').innerText = data.error || 'Google sign in failed.';
-                }
+                await syncWithBackend(idToken);
             } catch (err) {
                 console.error('Google sign-in error:', err);
-                document.getElementById('auth-error').innerText = err.message || 'Google sign in failed.';
+                document.getElementById('auth-error').innerText = getFirebaseErrorMessage(err);
             }
         });
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const loginVal = document.getElementById('login-user').value;
+            document.getElementById('auth-error').innerText = '';
+            const loginVal = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-password').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Logging in...';
+
             try {
-                const res = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ login: loginVal, password: pass })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    localStorage.setItem('ag_token', data.token);
-                    window.location.href = nextPage;
-                } else {
-                    document.getElementById('auth-error').innerText = data.error || 'Login failed.';
+                let emailToUse = loginVal;
+                if (!loginVal.includes('@')) {
+                    const lookupRes = await fetch(`/api/auth/lookup-email?username=${encodeURIComponent(loginVal)}`);
+                    const lookupData = await lookupRes.json();
+                    if (!lookupRes.ok) {
+                        throw new Error(lookupData.error || 'No account found with this username.');
+                    }
+                    emailToUse = lookupData.email;
                 }
+
+                const cred = await auth.signInWithEmailAndPassword(emailToUse, pass);
+                const idToken = await cred.user.getIdToken();
+                await syncWithBackend(idToken);
             } catch (err) {
                 console.error('Login error:', err);
-                document.getElementById('auth-error').innerText = 'Could not connect to authentication server. Please try again.';
+                document.getElementById('auth-error').innerText = getFirebaseErrorMessage(err);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Login';
             }
         });
 
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const emailVal = document.getElementById('reg-email').value;
-            const usernameVal = document.getElementById('reg-username').value;
+            document.getElementById('auth-error').innerText = '';
+            const emailVal = document.getElementById('reg-email').value.trim();
+            const usernameVal = document.getElementById('reg-username').value.trim();
             const pass = document.getElementById('reg-password').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Creating Account...';
+
             try {
-                const res = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: usernameVal, email: emailVal, password: pass })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    // Log them in immediately upon successful registration
-                    localStorage.setItem('ag_token', data.token);
-                    window.location.href = nextPage;
-                } else {
-                    document.getElementById('auth-error').innerText = data.error || 'Registration failed.';
+                const cred = await auth.createUserWithEmailAndPassword(emailVal, pass);
+                if (usernameVal) {
+                    await cred.user.updateProfile({ displayName: usernameVal });
                 }
+                const idToken = await cred.user.getIdToken();
+                await syncWithBackend(idToken, usernameVal);
             } catch (err) {
                 console.error('Registration error:', err);
-                document.getElementById('auth-error').innerText = 'Could not connect to authentication server. Please try again.';
+                document.getElementById('auth-error').innerText = getFirebaseErrorMessage(err);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Create Account';
             }
         });
 
         document.getElementById('reset-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('reset-email').value;
+            document.getElementById('auth-error').innerText = '';
+            const email = document.getElementById('reset-email').value.trim();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Sending...';
+
             try {
                 await auth.sendPasswordResetEmail(email);
                 showMessage('Password reset link sent to ' + email + '.', 'success');
             } catch (err) {
                 console.error('Password reset error:', err);
-                document.getElementById('auth-error').innerText = err.message || 'Reset link failed.';
+                document.getElementById('auth-error').innerText = getFirebaseErrorMessage(err);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Send Reset Link';
             }
         });
 

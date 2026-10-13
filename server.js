@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
 const admin = require('firebase-admin');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -37,9 +38,19 @@ cloudinary.config({
 // Configure Firebase Admin if credentials are available
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
-        const firebaseServiceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        admin.initializeApp({ credential: admin.credential.cert(firebaseServiceAccount) });
-        console.log('Firebase Admin initialized');
+        const firebaseServiceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
+            ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+            : process.env.FIREBASE_SERVICE_ACCOUNT;
+
+        // Ensure newline formatting is preserved for private key on Vercel/Linux
+        if (firebaseServiceAccount && firebaseServiceAccount.private_key) {
+            firebaseServiceAccount.private_key = firebaseServiceAccount.private_key.replace(/\\n/g, '\n');
+        }
+
+        if (!admin.apps.length) {
+            admin.initializeApp({ credential: admin.credential.cert(firebaseServiceAccount) });
+            console.log('Firebase Admin initialized');
+        }
     } catch (err) {
         console.warn('Failed to initialize Firebase Admin:', err.message);
     }
@@ -47,86 +58,102 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     console.warn('FIREBASE_SERVICE_ACCOUNT not set; Firebase authentication endpoint disabled.');
 }
 
-// Multer Storage Configuration (Cloudinary)
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-        let folderName = 'photo-gallery/uploads';
-        if (file.fieldname === 'profilePic') {
-            folderName = 'photo-gallery/profiles';
-        }
-        return {
-            folder: folderName,
-            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
-        };
-    }
+// Multer Storage Configuration (In-Memory Buffer for direct Cloudinary upload)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
-const upload = multer({ storage });
+
+// Direct Cloudinary upload function (No local disk saving)
+function uploadToCloudinary(file, folder = 'photo-gallery/uploads') {
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        return Promise.reject(new Error('Cloudinary credentials are not configured in .env'));
+    }
+
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: folder,
+                resource_type: 'auto'
+            },
+            (error, result) => {
+                if (error) {
+                    console.error('Cloudinary API upload error:', error.message || error);
+                    return reject(new Error(error.message || 'Cloudinary upload failed'));
+                }
+                console.log('Successfully uploaded to Cloudinary:', result.secure_url);
+                resolve(result.secure_url);
+            }
+        );
+        stream.end(file.buffer);
+    });
+}
 
 // JWT Middleware
 const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(403).json({ error: 'No token provided' });
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) return res.status(403).json({ error: 'No token provided' });
 
-    jwt.verify(token.split(' ')[1], JWT_SECRET, (err, decoded) => {
-        if (err) return res.status(401).json({ error: 'Unauthorized!' });
+    const parts = authHeader.split(' ');
+    const token = parts.length === 2 ? parts[1] : parts[0];
+
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) return res.status(401).json({ error: 'Unauthorized or session expired' });
         req.userId = decoded.id;
         next();
     });
 };
 
-// --- AUTHENTICATION ROUTES ---
+// --- AUTHENTICATION ROUTES (100% Firebase Authentication) ---
 
-app.post('/api/auth/register', async (req, res) => {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) return res.status(400).json({ error: 'All fields required' });
-
+// Lookup email by username for login (allows logging in with username or email via Firebase)
+app.get('/api/auth/lookup-email', async (req, res) => {
     try {
-        const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-        if (existingUser) {
-            return res.status(400).json({ error: 'Username or email already exists' });
-        }
-
-        const hash = bcrypt.hashSync(password, 10);
-        const newUser = await User.create({ username, email, password_hash: hash });
-
-        const token = jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: 86400 });
-        res.json({ message: 'Registered successfully', token, user: { id: newUser._id, username, email } });
+        const username = req.query.username;
+        if (!username) return res.status(400).json({ error: 'Username required' });
+        const user = await User.findOne({ username: new RegExp('^' + username.trim() + '$', 'i') }).select('email');
+        if (!user) return res.status(404).json({ error: 'No account found with this username' });
+        res.json({ email: user.email });
     } catch (err) {
-        res.status(500).json({ error: 'Registration failed' });
+        res.status(500).json({ error: 'Failed to look up username' });
     }
 });
 
-app.post('/api/auth/login', async (req, res) => {
-    const { login, password } = req.body;
-
-    try {
-        const user = await User.findOne({ $or: [{ username: login }, { email: login }] });
-        if (!user) return res.status(404).json({ error: 'User not found' });
-
-        const isValid = bcrypt.compareSync(password, user.password_hash);
-        if (!isValid) return res.status(401).json({ error: 'Invalid password' });
-
-        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: 86400 });
-        res.json({ message: 'Login successful', token, user: { id: user._id, username: user.username, email: user.email, profile_picture_url: user.profile_picture_url } });
-    } catch (err) {
-        res.status(500).json({ error: 'Login failed' });
-    }
-});
-
+// Unified Firebase Auth Endpoint (for Google Sign-In, Email/Password Login & Register)
 app.post('/api/auth/firebase', async (req, res) => {
-    console.log('Firebase auth endpoint called', req.method, req.path);
-    const { idToken } = req.body;
+    const { idToken, username: reqUsername } = req.body;
     if (!idToken) return res.status(400).json({ error: 'No Firebase ID token provided' });
-    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase Admin is not configured' });
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase Admin is not configured on server' });
+
+    let decodedToken;
+    try {
+        decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (authErr) {
+        console.error('Firebase token verification error:', authErr);
+        return res.status(401).json({ error: `Firebase auth failed: ${authErr.message}` });
+    }
+
+    if (!decodedToken.email) return res.status(400).json({ error: 'Firebase user email is required' });
 
     try {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        if (!decodedToken.email) return res.status(400).json({ error: 'Firebase user email is required' });
+        const userEmail = decodedToken.email.toLowerCase();
+        let user = await User.findOne({
+            $or: [
+                { firebase_uid: decodedToken.uid },
+                { email: userEmail }
+            ]
+        });
 
-        let user = await User.findOne({ email: decodedToken.email });
         if (!user) {
-            const baseUsername = decodedToken.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || 'user';
+            // Clean requested username or derive from email/displayName
+            let baseUsername = (reqUsername || decodedToken.displayName || userEmail.split('@')[0])
+                .toLowerCase()
+                .replace(/[^a-z0-9_]/g, '');
+
+            if (!baseUsername || baseUsername.length < 3) {
+                baseUsername = 'user_' + Math.random().toString(36).slice(-5);
+            }
+
             let username = baseUsername;
             let count = 1;
             while (await User.findOne({ username })) {
@@ -135,17 +162,38 @@ app.post('/api/auth/firebase', async (req, res) => {
 
             user = await User.create({
                 username,
-                email: decodedToken.email,
-                password_hash: bcrypt.hashSync(Math.random().toString(36).slice(-16), 10),
+                email: userEmail,
+                firebase_uid: decodedToken.uid,
                 profile_picture_url: decodedToken.picture || ''
             });
+        } else {
+            // Sync firebase_uid or profile picture if not already set
+            let updated = false;
+            if (!user.firebase_uid) {
+                user.firebase_uid = decodedToken.uid;
+                updated = true;
+            }
+            if (!user.profile_picture_url && decodedToken.picture) {
+                user.profile_picture_url = decodedToken.picture;
+                updated = true;
+            }
+            if (updated) await user.save();
         }
 
-        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: 86400 });
-        res.json({ message: 'Firebase login successful', token, user: { id: user._id, username: user.username, email: user.email, profile_picture_url: user.profile_picture_url } });
-    } catch (err) {
-        console.error('Firebase auth error:', err);
-        res.status(401).json({ error: 'Failed to verify Firebase token' });
+        const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: 86400 });
+        res.json({
+            message: 'Authentication successful',
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                profile_picture_url: user.profile_picture_url
+            }
+        });
+    } catch (dbErr) {
+        console.error('Database error during Firebase auth sync:', dbErr);
+        res.status(500).json({ error: `Database error: ${dbErr.message}` });
     }
 });
 
@@ -192,9 +240,10 @@ app.post('/api/user/profile', verifyToken, upload.single('profilePic'), async (r
         const user = await User.findById(req.userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        // Multer-storage-cloudinary returns the URL in req.file.path
-        const profilePic = req.file ? req.file.path : null;
-        const newPicUrl = profilePic || user.profile_picture_url;
+        let newPicUrl = user.profile_picture_url;
+        if (req.file) {
+            newPicUrl = await uploadToCloudinary(req.file, 'photo-gallery/profiles');
+        }
 
         user.username = username || user.username;
         user.bio = bio !== undefined ? bio : user.bio;
@@ -203,8 +252,8 @@ app.post('/api/user/profile', verifyToken, upload.single('profilePic'), async (r
         await user.save();
         res.json({ message: 'Profile updated', profile_picture_url: newPicUrl });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to update user' });
+        console.error('Profile update error:', err);
+        res.status(500).json({ error: err.message || 'Failed to update user' });
     }
 });
 
@@ -229,16 +278,17 @@ app.get('/api/events', (req, res) => {
 });
 
 // Periodically send ping to prevent connection timeout
-setInterval(() => {
+const pingInterval = setInterval(() => {
     sseClients.forEach(client => {
-        try { client.write(': ping\n\n'); } catch (e) {}
+        try { client.write(': ping\n\n'); } catch (e) { }
     });
 }, 25000);
+if (pingInterval.unref) pingInterval.unref();
 
 function broadcastEvent(type, payload = {}) {
     const data = `data: ${JSON.stringify({ type, ...payload })}\n\n`;
     sseClients.forEach(client => {
-        try { client.write(data); } catch (e) {}
+        try { client.write(data); } catch (e) { }
     });
 }
 
@@ -249,10 +299,11 @@ app.post('/api/photos', verifyToken, upload.single('photo'), async (req, res) =>
     if (!req.file) return res.status(400).json({ error: 'No photo uploaded' });
 
     try {
-        // req.file.path contains the secure Cloudinary URL
+        const fileUrl = await uploadToCloudinary(req.file, 'photo-gallery/uploads');
+
         const newPhoto = await Photo.create({
             user_id: req.userId,
-            filename: req.file.path,
+            filename: fileUrl,
             original_name: req.file.originalname
         });
 
@@ -260,15 +311,15 @@ app.post('/api/photos', verifyToken, upload.single('photo'), async (req, res) =>
         const populated = await newPhoto.populate('user_id', 'username');
         broadcastEvent('photo_added', {
             photo_id: newPhoto._id,
-            src: req.file.path,
+            src: fileUrl,
             title: req.file.originalname,
             username: populated.user_id ? populated.user_id.username : 'Unknown'
         });
 
-        res.json({ message: 'Photo uploaded successfully', photo_id: newPhoto._id, src: req.file.path });
+        res.json({ message: 'Photo uploaded successfully', photo_id: newPhoto._id, src: fileUrl });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Database error' });
+        console.error('Photo save error:', err);
+        res.status(500).json({ error: err.message || 'Database error during upload' });
     }
 });
 
@@ -319,7 +370,7 @@ app.get('/api/photos/public/:username', async (req, res) => {
     try {
         const user = await User.findOne({ username: req.params.username });
         if (!user) return res.status(404).json({ error: 'User not found' });
-        
+
         const photos = await Photo.find({ user_id: user._id, deleted_by_user: false })
             .sort({ created_at: -1 })
             .lean();
@@ -366,7 +417,7 @@ app.use(express.static(__dirname));
 // Serve frontend fallback for SPA
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-if (process.env.NODE_ENV !== 'production') {
+if (require.main === module && !process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Server is running on http://localhost:${PORT}`);
     });

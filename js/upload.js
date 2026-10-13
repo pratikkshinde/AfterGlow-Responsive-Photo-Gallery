@@ -178,6 +178,7 @@ async function uploadPhotos() {
     
     let successCount = 0;
     let errorCount = 0;
+    let lastErrorMessage = '';
 
     for (const file of selectedFiles) {
         const formData = new FormData();
@@ -196,10 +197,17 @@ async function uploadPhotos() {
                 successCount++;
             } else {
                 errorCount++;
+                try {
+                    const errData = await response.json();
+                    lastErrorMessage = errData.error || 'Server rejected file';
+                } catch (e) {
+                    lastErrorMessage = 'Server returned error ' + response.status;
+                }
             }
         } catch (error) {
             console.error('Upload error:', error);
             errorCount++;
+            lastErrorMessage = error.message || 'Network error during upload';
         }
     }
     
@@ -218,7 +226,7 @@ async function uploadPhotos() {
             }
         }, 1500);
     } else {
-        showMessage('Error uploading photos. Please try again.', 'error');
+        showMessage(lastErrorMessage || 'Error uploading photos. Please try again.', 'error');
     }
 }
 

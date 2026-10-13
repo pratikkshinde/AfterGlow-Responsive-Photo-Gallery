@@ -1,18 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AfterGlow - Capture the Moment</title>
+    <title>AfterGlow — Premium Photography Platform</title>
+    <meta name="description"
+        content="AfterGlow is an immersive, fine-art photography gallery and visual archive celebrating memorable moments and creative storytelling.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
+    <!-- Ambient Background Lighting -->
+    <div class="ambient-glow ambient-glow-1"></div>
+    <div class="ambient-glow ambient-glow-2"></div>
+
     <!-- Navigation Bar -->
-    <nav class="navbar">
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="logo">
                 <a href="index.html">
@@ -20,11 +31,11 @@
                     <span>AfterGlow</span>
                 </a>
             </div>
-            
+
             <div class="nav-links" id="navLinks">
                 <div class="nav-search">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="global-search" placeholder="Search users...">
+                    <input type="text" class="global-search" placeholder="Search creators...">
                     <div class="search-dropdown"></div>
                 </div>
                 <a href="index.html" class="active"><i class="fas fa-home"></i> Home</a>
@@ -32,8 +43,8 @@
                 <a href="upload.html"><i class="fas fa-upload"></i> Upload</a>
                 <a href="profile.html"><i class="fas fa-user-circle"></i> Profile</a>
             </div>
-            
-            <div class="hamburger" id="hamburger">
+
+            <div class="hamburger" id="hamburger" aria-label="Toggle navigation">
                 <i class="fas fa-bars"></i>
             </div>
         </div>
@@ -42,73 +53,128 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-bg-elements">
-            <!-- Simulated floating photo cards -->
+            <!-- Simulated floating photo cards with preserved IDs for real-time updates -->
             <div class="floating-img float-1">
                 <img id="heroImage1" src="/uploads/profiles/1775980620187.jpeg" alt="Gallery preview">
             </div>
             <div class="floating-img float-2">
-                <img id="heroImage2" src="images/gallery/photo2.jpg" alt="Gallery preview" onerror="this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2074&auto=format&fit=crop'">
+                <img id="heroImage2" src="images/gallery/photo2.jpg" alt="Gallery preview"
+                    onerror="this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2074&auto=format&fit=crop'">
             </div>
             <div class="floating-img float-3">
-                <img id="heroImage3" src="images/gallery/photo3.jpg" alt="Gallery preview" onerror="this.src='https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=2070&auto=format&fit=crop'">
+                <img id="heroImage3" src="images/gallery/photo3.jpg" alt="Gallery preview"
+                    onerror="this.src='https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=2070&auto=format&fit=crop'">
             </div>
             <div class="floating-img float-4">
-                <img id="heroImage4" src="images/gallery/photo4.jpg" alt="Gallery preview" onerror="this.src='https://images.unsplash.com/photo-1506744012022-df38ba83437e?q=80&w=2070&auto=format&fit=crop'">
+                <img id="heroImage4" src="images/gallery/photo4.jpg" alt="Gallery preview"
+                    onerror="this.src='https://images.unsplash.com/photo-1506744012022-df38ba83437e?q=80&w=2070&auto=format&fit=crop'">
             </div>
         </div>
-        
+
         <div class="hero-content">
-            <div class="hero-badge"><i class="fas fa-star" style="color: var(--accent-color); margin-right: 5px;"></i> Premium Photography Platform</div>
-            <h1>Illuminate Your<br>Best Memories</h1>
-            <p>A beautifully designed, deeply immersive gallery experience. Discover, share, and inspire the world with your photography collection.</p>
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                <span>Curated Photography Archive</span>
+                <span class="badge-separator">•</span>
+                <span class="badge-accent">Edition 2026</span>
+            </div>
+            <h1>Illuminate Your<br><span class="gradient-text">Best Memories</span></h1>
+            <p>A beautifully curated, deeply immersive digital gallery. Discover, celebrate, and preserve human stories
+                captured through authentic visual art.</p>
             <div class="hero-buttons">
-                <a href="gallery.html" class="btn btn-primary"><i class="fas fa-compass"></i> Explore Gallery</a>
-                <a href="upload.html" class="btn btn-secondary"><i class="fas fa-cloud-upload-alt"></i> Upload Photos</a>
+                <a href="gallery.html" class="btn btn-primary">
+                    <i class="fas fa-compass"></i>
+                    <span>Explore Gallery</span>
+                    <i class="fas fa-arrow-right btn-arrow"></i>
+                </a>
+                <a href="upload.html" class="btn btn-secondary">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Upload Photos</span>
+                </a>
+            </div>
+            <div class="hero-meta">
+                <span class="hero-meta-item"><i class="fas fa-check-circle"></i> 500+ Curated Works</span>
+                <span class="hero-meta-divider">•</span>
+                <span class="hero-meta-item"><i class="fas fa-shield-alt"></i> Lossless Quality</span>
+                <span class="hero-meta-divider">•</span>
+                <span class="hero-meta-item"><i class="fas fa-bolt"></i> Real-time Sync</span>
             </div>
         </div>
     </section>
 
-    <!-- Arched Carousel Section -->
+    <!-- Arched Carousel Section (Chronological Feed) -->
     <section class="carousel-section">
+        <span class="section-subtitle">Visual Timeline</span>
         <h2 class="section-title">Chronological Feed</h2>
-        <p class="upload-description">Explore the journey of the community through memories.</p>
+        <p class="upload-description">Explore the journey of the community through evolving memories.</p>
         <div class="arch-carousel-wrapper">
             <div class="arch-carousel" id="archCarousel">
                 <!-- Dynamically populated pictures via JS -->
             </div>
             <div class="carousel-controls">
-                <button class="arch-btn" id="archPrev"><i class="fas fa-chevron-left"></i></button>
-                <button class="arch-btn" id="archNext"><i class="fas fa-chevron-right"></i></button>
+                <button class="arch-btn" id="archPrev" aria-label="Previous photo"><i
+                        class="fas fa-chevron-left"></i></button>
+                <button class="arch-btn" id="archNext" aria-label="Next photo"><i
+                        class="fas fa-chevron-right"></i></button>
             </div>
         </div>
+        <p class="carousel-hint">
+            <i class="fas fa-hand-pointer"></i> Drag horizontally or use arrow buttons to explore • Click center photo
+            for cinematic view
+        </p>
     </section>
 
     <!-- Features Section -->
     <section class="features">
         <div class="container">
-            <h2 class="section-subtitle">Why AfterGlow</h2>
+            <span class="section-subtitle">Why AfterGlow</span>
             <h2 class="section-title">A Seamless Experience</h2>
+            <p class="section-description">Engineered for visual fidelity, responsive fluidity, and the pure
+                appreciation of photography.</p>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <i class="fas fa-mobile-alt"></i>
+                    <div class="feature-top-row">
+                        <div class="feature-icon-wrapper">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
                     </div>
-                    <h3>Fluid & Responsive</h3>
-                    <p>Designed to seamlessly adapt to any monitor or smartphone screen.</p>
+                    <h3>Fluid &amp; Responsive</h3>
+                    <p>Designed to seamlessly adapt to any high-resolution monitor, tablet, or smartphone display with
+                        precision masonry layout.</p>
+                    <div class="feature-footer">
+                        <span class="feature-pill"><i class="fas fa-check"></i> Adaptive Masonry</span>
+                        <span class="feature-pill"><i class="fas fa-check"></i> Retina Ready</span>
+                    </div>
                 </div>
+
                 <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <i class="fas fa-bolt"></i>
+                    <div class="feature-top-row">
+                        <div class="feature-icon-wrapper">
+                            <i class="fas fa-bolt"></i>
+                        </div>
                     </div>
                     <h3>Instant Uploads</h3>
-                    <p>Optimized architecture ensures high-definition memories are processed in seconds.</p>
+                    <p>In-memory image streaming and Cloudinary pipeline ensure high-definition photographs process in
+                        seconds with zero delay.</p>
+                    <div class="feature-footer">
+                        <span class="feature-pill"><i class="fas fa-check"></i> Direct Cloudinary</span>
+                        <span class="feature-pill"><i class="fas fa-check"></i> Real-time Sync</span>
+                    </div>
                 </div>
+
                 <div class="feature-card">
-                    <div class="feature-icon-wrapper">
-                        <i class="fas fa-eye"></i>
+                    <div class="feature-top-row">
+                        <div class="feature-icon-wrapper">
+                            <i class="fas fa-eye"></i>
+                        </div>
                     </div>
                     <h3>Cinematic Lightbox</h3>
-                    <p>Experience photography with true-to-life color grading and preview modes.</p>
+                    <p>Experience photography with true-to-life deep black canvas, high dynamic contrast, and
+                        distraction-free viewing controls.</p>
+                    <div class="feature-footer">
+                        <span class="feature-pill"><i class="fas fa-check"></i> Obsidian Backdrop</span>
+                        <span class="feature-pill"><i class="fas fa-check"></i> Creator Credit</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -119,7 +185,7 @@
         <div class="container">
             <div class="stats-grid">
                 <div class="stat-item">
-                    <h3 id="photoSupportCount">500+</h3>
+                    <h3 id="photoSupportCount">5000+</h3>
                     <p>Photos Supported</p>
                 </div>
                 <div class="stat-item">
@@ -134,19 +200,42 @@
         </div>
     </section>
 
+    <!-- Footer -->
     <footer>
         <div class="footer-content">
-            <p>Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow.</p>
-            <div class="social-links">
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="#"><i class="fab fa-dribbble"></i></a>
-                <a href="https://www.instagram.com/pratikkshinde_/">
-                    <i class="fab fa-instagram"></i></a>
+            <div class="footer-top-row">
+                <div class="footer-brand">
+                    <i class="fas fa-camera-retro"></i>
+                    <span>AfterGlow</span>
+                </div>
+                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top">
+                    Back to top &uarr;
+                </a>
+            </div>
+            <div class="footer-bottom-row">
+                <div class="footer-copyright">
+                    Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026
+                    AfterGlow. All visual works belong to their respective creators.
+                </div>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer"
+                        aria-label="LinkedIn">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer"
+                        aria-label="GitHub">
+                        <i class="fa-brands fa-github"></i>
+                    </a>
+                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer"
+                        aria-label="Instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </footer>
 
-    <!-- Lightbox -->
+    <!-- Lightbox Modal (Preserved IDs) -->
     <div class="lightbox" id="lightbox">
         <span class="close-lightbox" onclick="closeLightbox()">&times;</span>
         <img class="lightbox-content" id="lightbox-img" src="" alt="Full view">
@@ -155,4 +244,5 @@
 
     <script src="js/main.js"></script>
 </body>
+
 </html>

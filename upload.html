@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AfterGlow - Upload</title>
+    <title>AfterGlow — Upload Photographic Works</title>
+    <meta name="description" content="Share high-resolution photography with the AfterGlow community. Fast in-memory processing and lossless Cloudinary pipeline.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Ambient Background Lighting -->
+    <div class="ambient-glow ambient-glow-1"></div>
+    <div class="ambient-glow ambient-glow-2"></div>
+
     <!-- Navigation Bar -->
-    <nav class="navbar">
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="logo">
                 <a href="index.html">
@@ -24,7 +30,7 @@
             <div class="nav-links" id="navLinks">
                 <div class="nav-search">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="global-search" placeholder="Search users...">
+                    <input type="text" class="global-search" placeholder="Search creators...">
                     <div class="search-dropdown"></div>
                 </div>
                 <a href="index.html"><i class="fas fa-home"></i> Home</a>
@@ -33,7 +39,7 @@
                 <a href="profile.html"><i class="fas fa-user-circle"></i> Profile</a>
             </div>
             
-            <div class="hamburger" id="hamburger">
+            <div class="hamburger" id="hamburger" aria-label="Toggle navigation">
                 <i class="fas fa-bars"></i>
             </div>
         </div>
@@ -43,22 +49,29 @@
     <section class="upload-section">
         <div class="container">
             <div class="upload-container">
-                <h2 class="section-title">Upload Your Photos</h2>
-                <p class="upload-description">Share your memories with the community. Supported formats: JPG, PNG, WEBP (Max 5MB)</p>
+                <span class="section-subtitle">Exhibition Submission</span>
+                <h2 class="section-title">Upload Your Photographs</h2>
+                <p class="upload-description">Submit your authentic captures to the community archive. Supported formats: JPEG, PNG, WebP (Up to 5MB per photograph)</p>
                 
                 <div class="upload-area" id="uploadArea">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Drag & drop your images here or click to browse</p>
+                    <p>Drag &amp; drop your photographs here, or click to browse</p>
                     <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple>
-                    <button class="btn btn-primary" id="browseBtn">Browse Files</button>
+                    <button class="btn btn-primary" id="browseBtn" type="button">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                    </button>
                 </div>
                 
                 <div class="preview-section" id="previewSection" style="display: none;">
-                    <h3>Preview</h3>
+                    <h3>Selected Photographs</h3>
                     <div class="preview-grid" id="previewGrid"></div>
                     <div class="upload-actions">
-                        <button class="btn btn-primary" id="uploadBtn">Upload Photos</button>
-                        <button class="btn btn-secondary" id="clearBtn">Clear All</button>
+                        <button class="btn btn-primary" id="uploadBtn" type="button">
+                            <i class="fas fa-arrow-up"></i> Upload Photos
+                        </button>
+                        <button class="btn btn-secondary" id="clearBtn" type="button">
+                            <i class="fas fa-times"></i> Clear All
+                        </button>
                     </div>
                 </div>
                 
@@ -67,15 +80,33 @@
         </div>
     </section>
 
+    <!-- Footer -->
     <footer>
         <div class="footer-content">
-            <p>Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow.</p>
-            <div class="social-links">
-                <a href="#"><i class="fab fa-facebook"></i></a>
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="https://www.instagram.com/pratikkshinde_/">
-  <i class="fab fa-instagram"></i>
-</a>
+            <div class="footer-top-row">
+                <div class="footer-brand">
+                    <i class="fas fa-camera-retro"></i>
+                    <span>AfterGlow</span>
+                </div>
+                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top">
+                    Back to top &uarr;
+                </a>
+            </div>
+            <div class="footer-bottom-row">
+                <div class="footer-copyright">
+                    Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow. All visual works belong to their respective creators.
+                </div>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                        <i class="fa-brands fa-github"></i>
+                    </a>
+                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </footer>

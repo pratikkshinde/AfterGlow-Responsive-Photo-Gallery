@@ -27,19 +27,33 @@ async function loadGallery() {
 
 function displayGallery(photos) {
     const galleryGrid = document.getElementById('galleryGrid');
-
     if (!galleryGrid) return;
 
+    // Update live count badge if present
+    const countBadge = document.getElementById('galleryLiveCount');
+    if (countBadge) {
+        countBadge.textContent = `${photos.length} Works Archived`;
+    }
+
     if (photos.length === 0) {
-        galleryGrid.innerHTML = '<div class="loading">No photos found. Upload some photos to get started!</div>';
+        galleryGrid.innerHTML = `
+            <div class="loading">
+                <i class="fas fa-camera-retro" style="font-size: 2.2rem; color: var(--primary-light); margin-bottom: 1rem; display: block;"></i>
+                No photographs discovered yet. Be the first to upload to the collection!
+            </div>
+        `;
         return;
     }
 
     galleryGrid.innerHTML = photos.map((photo, index) => `
         <div class="gallery-item" data-id="${photo.id}" data-username="${photo.username}" style="--index: ${index}">
-            <img src="${photo.src}" alt="Gallery photo" loading="lazy">
+            <img src="${photo.src}" alt="${photo.title || 'Exhibition photograph'}" loading="lazy">
             <div class="gallery-item-info">
-                <p><strong><a href="profile.html?username=${photo.username}" style="color:var(--primary-color); text-decoration:none;">@${photo.username}</a></strong></p>
+                <p>
+                    <a href="profile.html?username=${photo.username}">
+                        <i class="fas fa-user-circle"></i> @${photo.username}
+                    </a>
+                </p>
             </div>
         </div>
     `).join('');
@@ -49,7 +63,7 @@ function displayGallery(photos) {
     galleryItems.forEach(item => {
         const img = item.querySelector('img');
         item.addEventListener('click', () => {
-            const username = item.dataset.username || 'Unknown user';
+            const username = item.dataset.username || 'Community Creator';
             openLightbox(img.src, username);
         });
     });
@@ -65,9 +79,15 @@ function openLightbox(imageSrc, username) {
     const lightboxImage = document.getElementById('lightboxImage');
     const lightboxCaption = document.getElementById('lightboxCaption');
 
+    if (!lightbox || !lightboxImage) return;
+
     lightboxImage.src = imageSrc;
-    lightboxCaption.innerHTML = `
-        <a href="profile.html?username=${username}" class="lightbox-user-link">@${username}</a>
-    `;
+    if (lightboxCaption) {
+        lightboxCaption.innerHTML = `
+            <a href="profile.html?username=${username}" class="lightbox-user-link">
+                <i class="fas fa-camera"></i> @${username}
+            </a>
+        `;
+    }
     lightbox.classList.add('modal-active');
 }

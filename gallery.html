@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AfterGlow - Gallery</title>
+    <title>AfterGlow — Exhibition Gallery</title>
+    <meta name="description" content="Explore fragments of feeling — a curated open exhibition of fine-art photography and shared visual memories on AfterGlow.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Ambient Background Lighting -->
+    <div class="ambient-glow ambient-glow-1"></div>
+    <div class="ambient-glow ambient-glow-2"></div>
+
     <!-- Navigation Bar -->
-    <nav class="navbar">
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="logo">
                 <a href="index.html">
@@ -24,7 +30,7 @@
             <div class="nav-links" id="navLinks">
                 <div class="nav-search">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="global-search" placeholder="Search users...">
+                    <input type="text" class="global-search" placeholder="Search creators...">
                     <div class="search-dropdown"></div>
                 </div>
                 <a href="index.html"><i class="fas fa-home"></i> Home</a>
@@ -33,7 +39,7 @@
                 <a href="profile.html"><i class="fas fa-user-circle"></i> Profile</a>
             </div>
             
-            <div class="hamburger" id="hamburger">
+            <div class="hamburger" id="hamburger" aria-label="Toggle navigation">
                 <i class="fas fa-bars"></i>
             </div>
         </div>
@@ -42,31 +48,55 @@
     <!-- Gallery Section -->
     <section class="gallery-section">
         <div class="container">
-            <h2 class="section-title">Fragments of Feeling</h2>
+            <div class="gallery-header">
+                <span class="gallery-eyebrow"><i class="fas fa-camera"></i> Curated Exhibition</span>
+                <h1 class="gallery-title">Fragments of Feeling</h1>
+            </div>
 
             <div class="gallery-grid" id="galleryGrid">
-                <!-- Gallery items will be loaded here dynamically -->
-                <div class="loading">Loading photos...</div>
+                <!-- Gallery items loaded here dynamically via gallery.js -->
+                <div class="loading">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary-light); margin-bottom: 1rem; display: block;"></i>
+                    Loading photography collection...
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Lightbox Modal -->
+    <!-- Cinematic Lightbox Modal -->
     <div id="lightbox" class="lightbox">
-        <span class="close-lightbox">&times;</span>
-        <img class="lightbox-content" id="lightboxImage">
+        <span class="close-lightbox" aria-label="Close viewer">&times;</span>
+        <img class="lightbox-content" id="lightboxImage" src="" alt="Photographic art full view">
         <div id="lightboxCaption" class="lightbox-caption"></div>
     </div>
 
+    <!-- Footer -->
     <footer>
         <div class="footer-content">
-            <p>Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow.</p>
-            <div class="social-links">
-                <a href="#"><i class="fab fa-facebook"></i></a>
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="https://www.instagram.com/pratikkshinde_/">
-  <i class="fab fa-instagram"></i>
-</a>
+            <div class="footer-top-row">
+                <div class="footer-brand">
+                    <i class="fas fa-camera-retro"></i>
+                    <span>AfterGlow</span>
+                </div>
+                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top">
+                    Back to top &uarr;
+                </a>
+            </div>
+            <div class="footer-bottom-row">
+                <div class="footer-copyright">
+                    Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow. All visual works belong to their respective creators.
+                </div>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                        <i class="fa-brands fa-github"></i>
+                    </a>
+                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </footer>

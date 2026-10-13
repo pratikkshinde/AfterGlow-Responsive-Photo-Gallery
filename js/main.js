@@ -16,6 +16,18 @@ if (hamburger) {
     });
 }
 
+// Navbar scroll glass blur effect
+window.addEventListener('scroll', () => {
+    const navbar = document.querySelector('.navbar');
+    if (navbar) {
+        if (window.scrollY > 25) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+    }
+}, { passive: true });
+
 // Handle global Auth Nav State
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('ag_token');

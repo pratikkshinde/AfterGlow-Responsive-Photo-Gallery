@@ -414,6 +414,9 @@ app.use('/api', (req, res) => {
 // Serve static HTML/CSS/JS from root
 app.use(express.static(__dirname));
 
+// Serve brand favicon
+app.get('/favicon.ico', (req, res) => res.type('image/svg+xml').sendFile(path.join(__dirname, 'favicon.svg')));
+
 // Serve frontend fallback for SPA
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 

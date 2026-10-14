@@ -252,8 +252,16 @@ async function initArchCarousel() {
 
                     if (lightbox && lightboxImg) {
                         lightboxImg.src = photo.src;
-                        const uploader = photo.username || 'Community Member';
-                        lightboxCaption.innerHTML = `<h3 style="margin-bottom: 0;"><a href="profile.html?username=${uploader}" class="lightbox-user-link">@${uploader}</a></h3>`;
+                        const uploader = (photo.username || 'creator').replace(/^@/, '').toLowerCase();
+                        lightboxCaption.innerHTML = `
+                            <a href="profile.html?username=${encodeURIComponent(uploader)}" class="lightbox-creator-badge" title="View @${uploader}'s profile">
+                                <div class="creator-badge-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <span class="creator-badge-handle">@${uploader}</span>
+                                <i class="fas fa-arrow-right creator-badge-arrow"></i>
+                            </a>
+                        `;
                         lightbox.classList.add('modal-active');
                     }
                 } else {

@@ -1,21 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AfterGlow - Profile</title>
+    <title>AfterGlow — Photographer Profile</title>
+    <meta name="description"
+        content="Explore curated photographs, creative storytelling, and visual archives on AfterGlow.">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
 </head>
+
 <body>
     <!-- Ambient Background Lighting -->
     <div class="ambient-glow ambient-glow-1"></div>
     <div class="ambient-glow ambient-glow-2"></div>
 
-    <nav class="navbar">
+    <!-- Navigation Bar -->
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="logo">
                 <a href="index.html">
@@ -32,55 +40,174 @@
                 <a href="index.html"><i class="fas fa-home"></i> Home</a>
                 <a href="gallery.html"><i class="fas fa-images"></i> Gallery</a>
                 <a href="upload.html"><i class="fas fa-upload"></i> Upload</a>
-                <a href="profile.html" class="active" id="nav-profile-link"><i class="fas fa-user-circle"></i> Profile</a>
+                <a href="profile.html" class="active" id="nav-profile-link"><i class="fas fa-user-circle"></i>
+                    Profile</a>
             </div>
-            <div class="hamburger" id="hamburger">
+            <div class="hamburger" id="hamburger" aria-label="Toggle navigation">
                 <i class="fas fa-bars"></i>
             </div>
         </div>
     </nav>
 
-    <div class="gallery-section">
-        <div class="profile-header">
-            <img id="prof-pic" src="https://via.placeholder.com/150" alt="Profile" class="profile-pic">
-            <div class="profile-info">
-                <h1 id="prof-username">Loading...</h1>
-                <div class="profile-stats">
-                    <span><strong id="prof-post-count">0</strong> Posts</span>
+    <!-- Main Profile Section -->
+    <main class="gallery-section profile-page-section">
+        <!-- Hero Banner Card -->
+        <div class="profile-banner-card">
+            <div class="profile-banner-inner">
+                <!-- Left: Avatar + Details -->
+                <div class="banner-left-group">
+                    <!-- Avatar with Glowing Neon Ring & Edit Pencil -->
+                    <div class="avatar-ring-container">
+                        <img id="prof-pic"
+                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop"
+                            alt="Profile avatar">
+                        <div class="avatar-edit-badge" onclick="openSettings()" title="Change avatar">
+                            <i class="fas fa-pencil-alt"></i>
+                        </div>
+                    </div>
+
+                    <!-- Info block -->
+                    <div class="banner-info">
+                        <div class="user-identity-block">
+                            <h1 class="prof-display-name" id="prof-display-name">Loading...</h1>
+                            <div class="prof-username-handle" id="prof-username">@username</div>
+                        </div>
+                        <p class="profile-bio-text" id="prof-bio">Capturing moments, not just photos. ✨</p>
+
+                        <!-- Clean modern posts counter (no icon) -->
+                        <div class="banner-stats">
+                            <div class="stat-unit">
+                                <span class="stat-number" id="prof-post-count">0</span>
+                                <span class="stat-desc">Posts</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p class="bio" id="prof-bio">No bio available.</p>
-                <button class="btn btn-secondary" onclick="openSettings()"><i class="fas fa-cog"></i> Edit Profile</button>
-                <button class="btn btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+
+                <!-- Right: Action Buttons -->
+                <div class="banner-actions">
+                    <button class="btn btn-edit-profile" onclick="openSettings()">
+                        <i class="fas fa-cog"></i> Edit Profile
+                    </button>
+                    <button class="btn btn-logout-pill" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="pin-grid" id="profile-gallery">
-            <!-- Loading -->
+        <!-- Horizontal Tab Bar (Posts, Likes [owner only], About) -->
+        <div class="profile-nav-bar">
+            <button class="profile-tab-btn active" data-tab="posts" onclick="switchProfileTab('posts')">
+                <i class="fas fa-images"></i> Posts
+            </button>
+            <button class="profile-tab-btn" id="tab-likes-btn" data-tab="likes" onclick="switchProfileTab('likes')">
+                <i class="far fa-heart"></i> Likes
+            </button>
+            <button class="profile-tab-btn" data-tab="about" onclick="switchProfileTab('about')">
+                <i class="far fa-user"></i> About
+            </button>
         </div>
-    </div>
 
-    <!-- Settings Modal -->
+        <!-- 4-Column Square Photo Grid -->
+        <div class="profile-photo-grid" id="profile-gallery">
+            <!-- Dynamically populated square photos -->
+        </div>
+
+        <!-- Tab Content for About (hidden by default) -->
+        <div id="about-tab-content" class="about-tab-wrapper" style="display:none;">
+            <div class="about-card-section">
+                <h3 class="about-card-title">About Photographer</h3>
+                <p id="about-bio-detail" class="about-card-bio">
+                    Capturing moments, not just photos. Visual artist exploring shadows, light, and authentic human
+                    emotion.
+                </p>
+                <div class="about-card-meta">
+                    <div class="about-meta-item">
+                        <span class="about-meta-label">Community Member</span>
+                        <strong class="about-meta-val">AfterGlow Collective</strong>
+                    </div>
+                    <div class="about-meta-item">
+                        <span class="about-meta-label">Specialty</span>
+                        <strong class="about-meta-val" id="about-specialty">Fine Art &amp; Cinematic Frames</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal (Edit Photo, Name, Bio, Specialty, About) -->
     <div class="settings-modal" id="settingsModal">
         <div class="settings-content">
-            <h2>Edit Profile</h2>
+            <div class="settings-header">
+                <div class="settings-header-text">
+                    <h2>Edit Profile</h2>
+                    <p class="settings-subtitle">Update your personal details, photography specialty &amp; bio</p>
+                </div>
+                <button type="button" class="settings-close-btn" onclick="closeSettings()" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
             <form id="settings-form">
-                <div class="form-group">
-                    <label>Profile Picture</label>
-                    <input type="file" id="set-pic" accept="image/*">
+                <!-- Avatar Upload Row -->
+                <div class="settings-avatar-row">
+                    <div class="settings-avatar-wrap">
+                        <img id="set-pic-preview"
+                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop"
+                            alt="Profile preview">
+                        <label for="set-pic" class="avatar-upload-overlay" title="Upload new photo">
+                            <i class="fas fa-camera"></i>
+                        </label>
+                    </div>
+                    <div class="settings-avatar-info">
+                        <label for="set-pic" class="btn-custom-upload">
+                            <i class="fas fa-arrow-up-from-bracket"></i> Change Photo
+                        </label>
+                        <input type="file" id="set-pic" accept="image/*" style="display:none;">
+                        <span class="upload-hint">Recommended: Square JPG, PNG or WebP</span>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" id="set-username">
+
+                <!-- Two-Column Grid: Display Name & Username -->
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="set-fullname">Display Name</label>
+                        <input type="text" id="set-fullname" placeholder="e.g. Narendra Modi">
+                    </div>
+                    <div class="form-group">
+                        <label for="set-username">Username</label>
+                        <input type="text" id="set-username" placeholder="username" style="text-transform: lowercase;" oninput="this.value = this.value.toLowerCase().replace(/\s+/g, '')">
+                    </div>
                 </div>
+
+                <!-- Specialty Field -->
                 <div class="form-group">
-                    <label>Bio</label>
-                    <textarea id="set-bio" rows="3"></textarea>
+                    <label for="set-specialty">Specialty</label>
+                    <input type="text" id="set-specialty" placeholder="e.g. Fine Art &amp; Cinematic Frames">
                 </div>
+
+                <!-- Bio Field -->
+                <div class="form-group">
+                    <label for="set-bio">Bio (Short Headline)</label>
+                    <textarea id="set-bio" rows="2" placeholder="Capturing moments, not just photos. ✨"></textarea>
+                </div>
+
+                <!-- About (Story & Description) -->
+                <div class="form-group">
+                    <label for="set-about">About (Story &amp; Description)</label>
+                    <textarea id="set-about" rows="3"
+                        placeholder="Tell the world about your photography journey, camera gear, and aesthetic vision..."></textarea>
+                </div>
+
                 <div class="settings-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="save-btn">Save Changes</button>
+                    <button type="button" class="btn-modal-cancel" onclick="closeSettings()">Cancel</button>
+                    <button type="submit" class="btn-modal-save" id="save-btn">
+                        <i class="fas fa-check"></i> Save Changes
+                    </button>
                 </div>
-                <p id="save-status" style="text-align:center; margin-top:0.8rem; font-size:0.9rem; min-height:1.2em;"></p>
+                <p id="save-status" style="text-align:center; margin-top:0.6rem; font-size:0.88rem; min-height:1.2em;">
+                </p>
             </form>
         </div>
     </div>
@@ -92,50 +219,151 @@
         <div class="lightbox-caption" id="profileLightboxCaption"></div>
     </div>
 
-    <style>
-        /* Empty state CTA */
-        .profile-empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 4rem 2rem;
-            background: rgba(255,255,255,0.03);
-            border: 1px dashed rgba(255,255,255,0.12);
-            border-radius: 2rem;
-            margin: 1rem auto;
-            max-width: 480px;
-        }
-        .empty-state-icon {
-            width: 80px; height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15));
-            border: 1px solid rgba(236,72,153,0.2);
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 1.5rem;
-            font-size: 2rem;
-            color: var(--primary-color);
-        }
-        .profile-empty-state h3 {
-            font-size: 1.5rem; margin-bottom: 0.75rem; color: var(--white);
-        }
-        .profile-empty-state p {
-            color: var(--text-light); margin-bottom: 1.5rem; line-height: 1.6;
-        }
-        /* Gallery items on profile are clickable */
-        .pin-grid .gallery-item { cursor: pointer; }
-    </style>
-
     <script src="js/main.js"></script>
     <script>
+        let currentUserPhotos = [];
+        let isProfileOwner = false;
+        let currentProfileUsername = '';
+
+        function hashString(str) {
+            let hash = 0;
+            if (!str) return 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash;
+        }
+
+        // Toggle like on a photo card
+        function togglePhotoLike(photoId) {
+            const userLikedKey = `ag_liked_${photoId}`;
+            const likeKey = `ag_likes_${photoId}`;
+            const isLiked = localStorage.getItem(userLikedKey) === 'true';
+
+            const countEl = document.getElementById(`like-count-${photoId}`);
+            const baseLikes = Math.abs(hashString(photoId)) % 15 + 1;
+            let currentCount = countEl ? parseInt(countEl.innerText, 10) : baseLikes;
+
+            const btn = document.querySelector(`.profile-photo-card[data-photo-id="${photoId}"] .card-like-pill`);
+            const heartIcon = btn ? btn.querySelector('i') : null;
+
+            if (isLiked) {
+                localStorage.setItem(userLikedKey, 'false');
+                currentCount = Math.max(0, currentCount - 1);
+                localStorage.setItem(likeKey, currentCount);
+                if (countEl) countEl.innerText = currentCount;
+                if (btn) btn.classList.remove('liked');
+                if (heartIcon) heartIcon.className = 'far fa-heart';
+            } else {
+                localStorage.setItem(userLikedKey, 'true');
+                currentCount = currentCount + 1;
+                localStorage.setItem(likeKey, currentCount);
+                if (countEl) countEl.innerText = currentCount;
+                if (btn) {
+                    btn.classList.add('liked');
+                    btn.style.transform = 'scale(1.2)';
+                    setTimeout(() => { if (btn) btn.style.transform = ''; }, 200);
+                }
+                if (heartIcon) heartIcon.className = 'fas fa-heart liked';
+            }
+        }
+
+        // Tab Switching Logic
+        function switchProfileTab(tabName) {
+            document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.querySelector(`.profile-tab-btn[data-tab="${tabName}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const grid = document.getElementById('profile-gallery');
+            const aboutSection = document.getElementById('about-tab-content');
+
+            if (tabName === 'posts') {
+                if (aboutSection) aboutSection.style.display = 'none';
+                if (grid) {
+                    grid.style.display = 'grid';
+                    renderPhotoCards(currentUserPhotos);
+                }
+            } else if (tabName === 'likes') {
+                if (aboutSection) aboutSection.style.display = 'none';
+                if (grid) {
+                    grid.style.display = 'grid';
+                    const likedPhotos = currentUserPhotos.filter(p => localStorage.getItem(`ag_liked_${p.id}`) === 'true');
+                    if (likedPhotos.length > 0) {
+                        renderPhotoCards(likedPhotos);
+                    } else {
+                        grid.innerHTML = `
+                            <div class="profile-empty-state">
+                                <div class="empty-state-icon"><i class="fas fa-heart"></i></div>
+                                <h3>No Liked Photographs Yet</h3>
+                                <p>Hover over photographs and tap the heart icon to curate your personal collection of favorites.</p>
+                            </div>
+                        `;
+                    }
+                }
+            } else if (tabName === 'about') {
+                if (grid) grid.style.display = 'none';
+                if (aboutSection) aboutSection.style.display = 'block';
+            }
+        }
+
+        function renderPhotoCards(photos) {
+            const grid = document.getElementById('profile-gallery');
+            if (!grid) return;
+
+            if (photos && photos.length > 0) {
+                grid.innerHTML = photos.map((p, index) => {
+                    const likeKey = `ag_likes_${p.id}`;
+                    const userLikedKey = `ag_liked_${p.id}`;
+                    const storedLikes = localStorage.getItem(likeKey);
+                    const isLiked = localStorage.getItem(userLikedKey) === 'true';
+                    const baseLikes = Math.abs(hashString(p.id)) % 15 + 1;
+                    const likeCount = storedLikes !== null ? parseInt(storedLikes, 10) : baseLikes;
+                    const safeTitle = (p.title || 'Photograph').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                    const photoUploader = (p.username || currentProfileUsername || '').replace(/^@/, '').toLowerCase();
+                    return `
+                        <div class="profile-photo-card" data-photo-id="${p.id}" style="--index: ${index}" onclick="openProfileLightbox('${p.src}', '${safeTitle}', '${photoUploader}')">
+                            <img src="${p.src}" alt="${safeTitle}" loading="lazy">
+                            ${isProfileOwner ? `<button class="card-quick-delete" onclick="event.stopPropagation(); deletePhoto('${p.id}')" title="Delete photograph" aria-label="Delete"><i class="fas fa-trash"></i></button>` : ''}
+                            <div class="profile-card-overlay">
+                                <button class="card-like-pill ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); togglePhotoLike('${p.id}')" title="Like">
+                                    <i class="${isLiked ? 'fas fa-heart liked' : 'far fa-heart'}"></i>
+                                    <span id="like-count-${p.id}">${likeCount}</span>
+                                </button>
+                                <button class="card-more-btn" onclick="event.stopPropagation(); openProfileLightbox('${p.src}', '${safeTitle}', '${photoUploader}')" title="View options">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                grid.innerHTML = isProfileOwner
+                    ? `<div class="profile-empty-state">
+                            <div class="empty-state-icon"><i class="fas fa-images"></i></div>
+                            <h3>Share Your Memories</h3>
+                            <p>Your portfolio is currently waiting for its first capture. Upload a photo and share your vision.</p>
+                            <a href="upload.html" class="btn btn-primary"><i class="fas fa-cloud-upload-alt"></i> Upload Photos</a>
+                       </div>`
+                    : `<div class="profile-empty-state">
+                            <div class="empty-state-icon"><i class="fas fa-camera"></i></div>
+                            <h3>No Photos Yet</h3>
+                            <p>This creator has not archived any photographs yet.</p>
+                       </div>`;
+            }
+        }
+
         // Profile Loader Logic
         async function loadProfileData() {
             const urlParams = new URLSearchParams(window.location.search);
-            const targetUsername = urlParams.get('username');
+            const targetUsername = urlParams.get('username') || urlParams.get('user');
             const token = localStorage.getItem('ag_token');
 
             let myUsername = null;
             if (token) {
                 try {
-                    const meRes = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token }});
+                    const meRes = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
                     if (meRes.ok) {
                         const me = await meRes.json();
                         myUsername = me.username;
@@ -144,32 +372,31 @@
                         window.location.href = 'auth.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
                         return;
                     }
-                } catch(e) {
+                } catch (e) {
                     localStorage.removeItem('ag_token');
                 }
             }
 
-            // Require login ONLY if trying to view own profile directly
             if (!targetUsername && !token) {
                 window.location.href = 'auth.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
                 return;
             }
 
-            const isOwner = !targetUsername || targetUsername === myUsername;
+            isProfileOwner = !targetUsername || targetUsername === myUsername;
             let profileUser = null;
             let photos = [];
 
             try {
-                if (isOwner) {
-                    const uRes = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token }});
+                if (isProfileOwner) {
+                    const uRes = await fetch('/api/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
                     if (uRes.status === 401 || uRes.status === 403) {
                         localStorage.removeItem('ag_token');
                         window.location.href = 'auth.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
                         return;
                     }
                     if (uRes.ok) profileUser = await uRes.json();
-                    
-                    const pRes = await fetch('/api/photos/me', { headers: { 'Authorization': 'Bearer ' + token }});
+
+                    const pRes = await fetch('/api/photos/me', { headers: { 'Authorization': 'Bearer ' + token } });
                     if (pRes.status === 401 || pRes.status === 403) {
                         localStorage.removeItem('ag_token');
                         window.location.href = 'auth.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
@@ -179,7 +406,7 @@
                 } else {
                     const uRes = await fetch(`/api/user/public/${targetUsername}`);
                     if (uRes.ok) profileUser = await uRes.json();
-                    
+
                     const pRes = await fetch(`/api/photos/public/${targetUsername}`);
                     if (pRes.ok) photos = await pRes.json();
                 }
@@ -190,50 +417,61 @@
                     return;
                 }
 
-                // Render Profile Headers
-                document.getElementById('prof-username').innerText = '@' + profileUser.username;
-                document.getElementById('prof-bio').innerText = profileUser.bio || (isOwner ? 'Add a bio...' : 'No bio available.');
-                if(profileUser.profile_picture_url) document.getElementById('prof-pic').src = profileUser.profile_picture_url;
-                
-                document.getElementById('prof-post-count').innerText = photos ? photos.length : 0;
+                currentProfileUsername = profileUser.username;
+                currentUserPhotos = photos || [];
 
-                // Render Photos Grid
-                const grid = document.getElementById('profile-gallery');
-                if (photos && photos.length > 0) {
-                    grid.innerHTML = photos.map((p, index) => `
-                        <div class="gallery-item pin-item" data-photo-id="${p.id}" style="--index: ${index}" onclick="openProfileLightbox('${p.src}', '${(p.title || '').replace(/'/g, "\'")}')">
-                            <img src="${p.src}" alt="${p.title || 'Memory'}">
-                            ${isOwner ? `<button class="delete-btn" onclick="event.stopPropagation(); deletePhoto('${p.id}')"><i class="fas fa-trash"></i></button>` : ''}
-                        </div>
-                    `).join('');
-                } else {
-                    // Rich empty-state CTA
-                    const emptyMsg = isOwner
-                        ? `<div class="profile-empty-state">
-                                <div class="empty-state-icon"><i class="fas fa-images"></i></div>
-                                <h3>Share Your Memories</h3>
-                                <p>Your gallery is empty. Upload your first photo and let the world see your story.</p>
-                                <a href="upload.html" class="btn btn-primary"><i class="fas fa-cloud-upload-alt"></i> Upload Photos</a>
-                           </div>`
-                        : `<div class="profile-empty-state">
-                                <div class="empty-state-icon"><i class="fas fa-camera"></i></div>
-                                <h3>No Photos Yet</h3>
-                                <p>This user hasn't shared any memories yet.</p>
-                           </div>`;
-                    grid.innerHTML = emptyMsg;
+                // Render Profile Details
+                const cleanUsername = (profileUser.username || '').toLowerCase();
+                const displayName = profileUser.full_name || profileUser.name || cleanUsername;
+                const displayNameEl = document.getElementById('prof-display-name');
+                if (displayNameEl) displayNameEl.innerText = displayName;
+
+                const usernameEl = document.getElementById('prof-username');
+                if (usernameEl) usernameEl.innerText = '@' + cleanUsername;
+
+                const bioEl = document.getElementById('prof-bio');
+                const aboutBio = document.getElementById('about-bio-detail');
+                const userBio = profileUser.bio || (isProfileOwner ? 'Capturing moments, not just photos. ✨' : 'No bio available.');
+                if (bioEl) bioEl.innerText = userBio;
+
+                const userAbout = profileUser.about || localStorage.getItem('ag_user_about_' + cleanUsername) || userBio;
+                if (aboutBio) aboutBio.innerText = userAbout;
+
+                const userSpecialty = profileUser.specialty || localStorage.getItem('ag_user_specialty_' + cleanUsername) || 'Fine Art & Cinematic Frames';
+                const specialtyEl = document.getElementById('about-specialty');
+                if (specialtyEl) specialtyEl.innerText = userSpecialty;
+
+                if (profileUser.profile_picture_url) {
+                    document.getElementById('prof-pic').src = profileUser.profile_picture_url;
                 }
 
-                // UI Controls
-                if (!isOwner) {
-                    // Hide Owner actions
-                    const editBtn = document.querySelector('.btn-secondary[onclick="openSettings()"]');
-                    const logoutBtn = document.querySelector('.btn-logout');
+                // Modern clean posts count
+                document.getElementById('prof-post-count').innerText = currentUserPhotos.length;
+
+                // Likes tab visibility: ONLY visible to profile owner!
+                const likesTabBtn = document.getElementById('tab-likes-btn');
+                if (likesTabBtn) {
+                    likesTabBtn.style.display = isProfileOwner ? 'inline-flex' : 'none';
+                }
+
+                // Render 4-Column Square Photo Grid
+                renderPhotoCards(currentUserPhotos);
+
+                // Owner actions visibility
+                const editBtn = document.querySelector('.btn-edit-profile');
+                const logoutBtn = document.querySelector('.btn-logout-pill');
+                const avatarBadge = document.querySelector('.avatar-edit-badge');
+
+                if (!isProfileOwner) {
                     if (editBtn) editBtn.style.display = 'none';
                     if (logoutBtn) logoutBtn.style.display = 'none';
+                    if (avatarBadge) avatarBadge.style.display = 'none';
                 } else {
-                    // Pre-fill modal data for owner
-                    document.getElementById('set-username').value = profileUser.username;
+                    document.getElementById('set-username').value = cleanUsername;
+                    document.getElementById('set-fullname').value = profileUser.full_name || profileUser.name || '';
                     document.getElementById('set-bio').value = profileUser.bio || '';
+                    document.getElementById('set-specialty').value = userSpecialty;
+                    document.getElementById('set-about').value = profileUser.about || localStorage.getItem('ag_user_about_' + profileUser.username) || '';
                 }
 
             } catch (err) {
@@ -248,23 +486,44 @@
             }
         });
 
-        // Settings Logic
+        // Settings Modal Handlers
         const settingsModal = document.getElementById('settingsModal');
         function openSettings() {
+            const currentProfPic = document.getElementById('prof-pic');
+            const previewPic = document.getElementById('set-pic-preview');
+            if (currentProfPic && previewPic && currentProfPic.src) {
+                previewPic.src = currentProfPic.src;
+            }
+            const fileInput = document.getElementById('set-pic');
+            if (fileInput) fileInput.value = '';
             settingsModal.classList.add('modal-active');
         }
         function closeSettings() {
             settingsModal.classList.remove('modal-active');
         }
 
-        // Close modal when clicking the backdrop
+        const picInput = document.getElementById('set-pic');
+        if (picInput) {
+            picInput.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) {
+                    const previewPic = document.getElementById('set-pic-preview');
+                    if (previewPic) {
+                        previewPic.src = URL.createObjectURL(file);
+                    }
+                }
+            });
+        }
+
         settingsModal.addEventListener('click', (e) => {
             if (e.target === settingsModal) closeSettings();
         });
 
-        // Close modal with Escape key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeSettings();
+            if (e.key === 'Escape') {
+                closeSettings();
+                closeProfileLightbox();
+            }
         });
 
         document.getElementById('settings-form').addEventListener('submit', async (e) => {
@@ -273,15 +532,24 @@
             const saveBtn = document.getElementById('save-btn');
             const saveStatus = document.getElementById('save-status');
 
-            // Show loading state
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             saveStatus.style.color = 'var(--text-light)';
             saveStatus.textContent = '';
 
+            const newUsername = document.getElementById('set-username').value.trim().toLowerCase();
+            const newFullName = document.getElementById('set-fullname').value.trim();
+            const newBio = document.getElementById('set-bio').value.trim();
+            const newSpecialty = document.getElementById('set-specialty').value.trim() || 'Fine Art & Cinematic Frames';
+            const newAbout = document.getElementById('set-about').value.trim();
+
             const fd = new FormData();
-            fd.append('username', document.getElementById('set-username').value);
-            fd.append('bio', document.getElementById('set-bio').value);
+            fd.append('username', newUsername);
+            fd.append('full_name', newFullName);
+            fd.append('name', newFullName);
+            fd.append('bio', newBio);
+            fd.append('specialty', newSpecialty);
+            fd.append('about', newAbout);
             const pic = document.getElementById('set-pic').files[0];
             if (pic) fd.append('profilePic', pic);
 
@@ -294,15 +562,26 @@
                 const data = await res.json();
 
                 if (res.ok) {
-                    // Update DOM in-place — no reload needed
-                    const newUsername = document.getElementById('set-username').value;
-                    const newBio = document.getElementById('set-bio').value;
-                    document.getElementById('prof-username').innerText = '@' + newUsername;
-                    document.getElementById('prof-bio').innerText = newBio || 'Add a bio...';
+                    const displayNameEl = document.getElementById('prof-display-name');
+                    if (displayNameEl) displayNameEl.innerText = newFullName || newUsername;
+
+                    const usernameEl = document.getElementById('prof-username');
+                    if (usernameEl) usernameEl.innerText = '@' + newUsername;
+
+                    document.getElementById('prof-bio').innerText = newBio || 'Capturing moments, not just photos. ✨';
+                    document.getElementById('about-bio-detail').innerText = newAbout || newBio || 'Capturing moments, not just photos. ✨';
+
+                    const specialtyEl = document.getElementById('about-specialty');
+                    if (specialtyEl) specialtyEl.innerText = newSpecialty;
+                    localStorage.setItem('ag_user_specialty_' + newUsername, newSpecialty);
+
+                    if (newAbout) {
+                        localStorage.setItem('ag_user_about_' + newUsername, newAbout);
+                    }
+
                     if (data.profile_picture_url) {
                         document.getElementById('prof-pic').src = data.profile_picture_url;
                     } else if (pic) {
-                        // Show local preview immediately if server didn't return URL yet
                         document.getElementById('prof-pic').src = URL.createObjectURL(pic);
                     }
 
@@ -311,7 +590,6 @@
                     saveBtn.innerHTML = 'Save Changes';
                     saveBtn.disabled = false;
 
-                    // Auto-close modal after short delay
                     setTimeout(() => {
                         closeSettings();
                         saveStatus.textContent = '';
@@ -328,7 +606,7 @@
         });
 
         async function deletePhoto(id) {
-            if (!confirm('Remove this photo from your profile?')) return;
+            if (!confirm('Remove this photo from your portfolio?')) return;
             const token = localStorage.getItem('ag_token');
             try {
                 const res = await fetch(`/api/photos/${id}`, {
@@ -336,17 +614,16 @@
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 if (res.ok) {
-                    // Remove the card from the DOM instantly — no reload
-                    const card = document.querySelector(`.gallery-item[data-photo-id="${id}"]`);
+                    currentUserPhotos = currentUserPhotos.filter(p => p.id !== id);
+                    const card = document.querySelector(`.profile-photo-card[data-photo-id="${id}"]`);
                     if (card) {
                         card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                         card.style.opacity = '0';
                         card.style.transform = 'scale(0.85)';
                         setTimeout(() => card.remove(), 320);
                     }
-                    // Update post count
                     const countEl = document.getElementById('prof-post-count');
-                    if (countEl) countEl.innerText = Math.max(0, parseInt(countEl.innerText) - 1);
+                    if (countEl) countEl.innerText = Math.max(0, currentUserPhotos.length);
                 }
             } catch (err) {
                 console.error('Delete error:', err);
@@ -358,33 +635,42 @@
             window.location.href = 'index.html';
         }
 
-        // Profile image lightbox
-        function openProfileLightbox(src) {
+        // Lightbox: Clean photographer badge, NO ugly camera logo, Tap to open profile!
+        function openProfileLightbox(src, title, uploader) {
             const lb = document.getElementById('profileLightbox');
             const img = document.getElementById('profileLightboxImg');
             const cap = document.getElementById('profileLightboxCaption');
+            if (!lb || !img) return;
             img.src = src;
-            cap.innerHTML = '';
+
+            const targetUser = (uploader || currentProfileUsername || 'creator').replace(/^@/, '').toLowerCase();
+
+            if (cap) {
+                cap.innerHTML = `
+                    <a href="profile.html?username=${encodeURIComponent(targetUser)}" class="lightbox-creator-badge" title="View @${targetUser}'s profile">
+                        <div class="creator-badge-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span class="creator-badge-handle">@${targetUser}</span>
+                        <i class="fas fa-arrow-right creator-badge-arrow"></i>
+                    </a>
+                `;
+            }
             lb.style.display = 'flex';
-            lb.style.animation = 'fadeIn 0.3s ease forwards';
+            lb.classList.add('modal-active');
         }
 
         function closeProfileLightbox() {
             const lb = document.getElementById('profileLightbox');
-            lb.style.animation = 'fadeIn 0.25s ease reverse forwards';
-            setTimeout(() => { lb.style.display = 'none'; lb.style.animation = ''; }, 260);
+            if (!lb) return;
+            lb.classList.remove('modal-active');
+            setTimeout(() => { lb.style.display = 'none'; }, 250);
         }
 
-        document.getElementById('profileLightbox').addEventListener('click', function(e) {
+        document.getElementById('profileLightbox').addEventListener('click', function (e) {
             if (e.target === this) closeProfileLightbox();
-        });
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeProfileLightbox();
-                closeSettings();
-            }
         });
     </script>
 </body>
+
 </html>

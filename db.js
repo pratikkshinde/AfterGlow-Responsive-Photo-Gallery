@@ -34,11 +34,14 @@ async function dbConnect() {
 
 // Setup User Schema
 const userSchema = new mongoose.Schema({
-  username: { type: String, unique: true, required: true },
+  username: { type: String, unique: true, required: true, lowercase: true, trim: true },
   email: { type: String, unique: true, required: true },
   firebase_uid: { type: String, unique: true, sparse: true },
-  password_hash: { type: String, default: '' },
+  name: { type: String, default: '' },
+  full_name: { type: String, default: '' },
   bio: { type: String, default: '' },
+  about: { type: String, default: '' },
+  specialty: { type: String, default: 'Fine Art & Cinematic Frames' },
   profile_picture_url: { type: String, default: '' },
   created_at: { type: Date, default: Date.now }
 });

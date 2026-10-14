@@ -201,7 +201,7 @@ app.post('/api/auth/firebase', async (req, res) => {
 
 app.get('/api/user/me', verifyToken, async (req, res) => {
     try {
-        const user = await User.findById(req.userId).select('username email bio profile_picture_url');
+        const user = await User.findById(req.userId).select('username email name full_name bio about specialty profile_picture_url');
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         res.json(user);
@@ -212,7 +212,7 @@ app.get('/api/user/me', verifyToken, async (req, res) => {
 
 app.get('/api/user/public/:username', async (req, res) => {
     try {
-        const user = await User.findOne({ username: req.params.username }).select('username bio profile_picture_url');
+        const user = await User.findOne({ username: req.params.username }).select('username name full_name bio about specialty profile_picture_url');
         if (!user) return res.status(404).json({ error: 'User not found' });
         res.json(user);
     } catch (err) {
@@ -234,25 +234,53 @@ app.get('/api/users/search', async (req, res) => {
 });
 
 app.post('/api/user/profile', verifyToken, upload.single('profilePic'), async (req, res) => {
-    const { username, bio } = req.body;
+    const { username, name, full_name, bio, about, specialty } = req.body;
 
     try {
         const user = await User.findById(req.userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (username && username.trim()) {
+            const cleanUsername = username.trim().toLowerCase();
+            if (cleanUsername !== (user.username || '').toLowerCase()) {
+                // Check if username already exists for any other user (case-insensitive)
+                const escaped = cleanUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const existingUser = await User.findOne({
+                    username: { $regex: new RegExp(`^${escaped}$`, 'i') },
+                    _id: { $ne: user._id }
+                });
+                if (existingUser) {
+                    return res.status(400).json({ error: `Username "@${cleanUsername}" already exists. Please choose a different username.` });
+                }
+                user.username = cleanUsername;
+            } else {
+                user.username = cleanUsername;
+            }
+        }
 
         let newPicUrl = user.profile_picture_url;
         if (req.file) {
             newPicUrl = await uploadToCloudinary(req.file, 'photo-gallery/profiles');
         }
 
-        user.username = username || user.username;
-        user.bio = bio !== undefined ? bio : user.bio;
+        const displayName = name !== undefined ? name : full_name;
+        if (displayName !== undefined) {
+            user.name = displayName;
+            user.full_name = displayName;
+        }
+        if (bio !== undefined) user.bio = bio;
+        if (about !== undefined) user.about = about;
+        if (specialty !== undefined) user.specialty = specialty;
         user.profile_picture_url = newPicUrl;
 
         await user.save();
         res.json({ message: 'Profile updated', profile_picture_url: newPicUrl });
     } catch (err) {
         console.error('Profile update error:', err);
+        if (err.code === 11000 || (err.message && (err.message.includes('E11000') || err.message.includes('duplicate key')))) {
+            const dupUsername = username ? `@${username.trim()}` : 'This username';
+            return res.status(400).json({ error: `Username "${dupUsername}" already exists. Please choose a different username.` });
+        }
         res.status(500).json({ error: err.message || 'Failed to update user' });
     }
 });

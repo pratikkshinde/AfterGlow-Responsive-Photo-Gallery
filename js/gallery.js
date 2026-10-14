@@ -83,9 +83,14 @@ function openLightbox(imageSrc, username) {
 
     lightboxImage.src = imageSrc;
     if (lightboxCaption) {
+        const cleanUser = (username || 'creator').replace(/^@/, '').toLowerCase();
         lightboxCaption.innerHTML = `
-            <a href="profile.html?username=${username}" class="lightbox-user-link">
-                <i class="fas fa-camera"></i> @${username}
+            <a href="profile.html?username=${encodeURIComponent(cleanUser)}" class="lightbox-creator-badge" title="View @${cleanUser}'s profile">
+                <div class="creator-badge-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span class="creator-badge-handle">@${cleanUser}</span>
+                <i class="fas fa-arrow-right creator-badge-arrow"></i>
             </a>
         `;
     }

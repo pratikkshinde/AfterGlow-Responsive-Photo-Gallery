@@ -212,7 +212,10 @@ app.get('/api/user/me', verifyToken, async (req, res) => {
 
 app.get('/api/user/public/:username', async (req, res) => {
     try {
-        const user = await User.findOne({ username: req.params.username }).select('username name full_name bio about specialty profile_picture_url');
+        const clean = (req.params.username || '').trim();
+        const user = await User.findOne({ 
+            username: { $regex: new RegExp('^' + clean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } 
+        }).select('username name full_name bio about specialty profile_picture_url');
         if (!user) return res.status(404).json({ error: 'User not found' });
         res.json(user);
     } catch (err) {
@@ -355,7 +358,7 @@ app.post('/api/photos', verifyToken, upload.single('photo'), async (req, res) =>
 app.get('/api/photos', async (req, res) => {
     try {
         const photos = await Photo.find({ deleted_by_user: false })
-            .populate('user_id', 'username')
+            .populate('user_id', 'username profile_picture_url')
             .sort({ created_at: -1 })
             .lean();
 
@@ -365,7 +368,8 @@ app.get('/api/photos', async (req, res) => {
             src: p.filename,
             title: p.original_name,
             date: p.created_at,
-            username: p.user_id ? p.user_id.username : "Unknown"
+            username: p.user_id ? p.user_id.username : "Unknown",
+            userAvatar: p.user_id ? p.user_id.profile_picture_url : null
         }));
 
         res.json(formattedPhotos);

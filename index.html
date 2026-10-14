@@ -203,43 +203,68 @@
     <!-- Footer -->
     <footer>
         <div class="footer-content">
-            <div class="footer-top-row">
-                <div class="footer-brand">
-                    <i class="fas fa-camera-retro"></i>
-                    <span>AfterGlow</span>
-                </div>
-                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top">
-                    Back to top &uarr;
+            <div class="footer-brand">
+                <i class="fas fa-camera-retro"></i>
+                <span>AfterGlow</span>
+            </div>
+            <p class="footer-tagline">A curated digital sanctuary celebrating fine-art photography and shared visual
+                memories.</p>
+            <div class="social-links">
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Dribbble"><i class="fab fa-dribbble"></i></a>
+                <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer"
+                    aria-label="Instagram">
+                    <i class="fab fa-instagram"></i>
                 </a>
             </div>
-            <div class="footer-bottom-row">
-                <div class="footer-copyright">
-                    Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026
-                    AfterGlow. All visual works belong to their respective creators.
-                </div>
-                <div class="social-links">
-                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer"
-                        aria-label="LinkedIn">
-                        <i class="fa-brands fa-linkedin-in"></i>
-                    </a>
-                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer"
-                        aria-label="GitHub">
-                        <i class="fa-brands fa-github"></i>
-                    </a>
-                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer"
-                        aria-label="Instagram">
-                        <i class="fa-brands fa-instagram"></i>
-                    </a>
-                </div>
+            <div class="footer-copyright">
+                Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026
+                AfterGlow. All visual works belong to their respective creators.
             </div>
+            <div class="social-links">
+                <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer"
+                    aria-label="LinkedIn">
+                    <i class="fa-brands fa-linkedin-in"></i>
+                </a>
+                <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer"
+                    aria-label="GitHub">
+                    <i class="fa-brands fa-github"></i>
+                </a>
+                <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer"
+                    aria-label="Instagram">
+                    <i class="fa-brands fa-instagram"></i>
+                </a>
+            </div>
+        </div>
         </div>
     </footer>
 
     <!-- Lightbox Modal (Preserved IDs) -->
-    <div class="lightbox" id="lightbox">
-        <span class="close-lightbox" onclick="closeLightbox()">&times;</span>
-        <img class="lightbox-content" id="lightbox-img" src="" alt="Full view">
-        <div class="lightbox-caption" id="lightbox-caption"></div>
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+        <button type="button" class="close-lightbox" onclick="closeLightbox()" aria-label="Close viewer">
+            <i class="fas fa-xmark"></i>
+        </button>
+        <button type="button" class="lightbox-nav-btn prev-btn" id="homeLightboxPrev" onclick="window.navigateHomeLightbox && window.navigateHomeLightbox(-1)" aria-label="Previous photograph">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button type="button" class="lightbox-nav-btn next-btn" id="homeLightboxNext" onclick="window.navigateHomeLightbox && window.navigateHomeLightbox(1)" aria-label="Next photograph">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <div class="lightbox-stage" id="homeLightboxStage">
+            <img class="lightbox-content" id="lightbox-img" src="" alt="Full view">
+            <div class="lightbox-dock-overlay" id="homeLightboxBottomBar">
+                <div class="lightbox-dock-left" id="lightbox-caption"></div>
+                <div class="lightbox-dock-right">
+                    <button type="button" class="lightbox-icon-btn" onclick="window.shareCurrentHomePhoto && window.shareCurrentHomePhoto()" title="Share photograph" aria-label="Share">
+                        <i class="fas fa-share-nodes"></i>
+                    </button>
+                    <button type="button" class="lightbox-icon-btn" onclick="window.downloadCurrentHomePhoto && window.downloadCurrentHomePhoto()" title="Download photograph" aria-label="Download">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/main.js"></script>

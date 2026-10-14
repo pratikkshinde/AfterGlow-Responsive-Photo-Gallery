@@ -64,10 +64,32 @@
     </section>
 
     <!-- Cinematic Lightbox Modal -->
-    <div id="lightbox" class="lightbox">
-        <span class="close-lightbox" aria-label="Close viewer">&times;</span>
-        <img class="lightbox-content" id="lightboxImage" src="" alt="Photographic art full view">
-        <div id="lightboxCaption" class="lightbox-caption"></div>
+    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Photo exhibition viewer">
+        <button type="button" class="close-lightbox" aria-label="Close viewer">
+            <i class="fas fa-xmark"></i>
+        </button>
+        <button type="button" class="lightbox-nav-btn prev-btn" id="galleryLightboxPrev" onclick="navigateGalleryLightbox(-1)" aria-label="Previous photograph">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button type="button" class="lightbox-nav-btn next-btn" id="galleryLightboxNext" onclick="navigateGalleryLightbox(1)" aria-label="Next photograph">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <!-- Center Stage with Image & Integrated Bottom Overlay -->
+        <div class="lightbox-stage" id="lightboxStage">
+            <img class="lightbox-content" id="lightboxImage" src="" alt="Photographic art full view">
+            <div class="lightbox-dock-overlay" id="galleryLightboxBottomBar">
+                <div id="lightboxCaption" class="lightbox-dock-left"></div>
+                <div class="lightbox-dock-right">
+                    <button type="button" class="lightbox-icon-btn" onclick="shareCurrentGalleryPhoto()" title="Share photograph" aria-label="Share">
+                        <i class="fas fa-share-nodes"></i>
+                    </button>
+                    <button type="button" class="lightbox-icon-btn" onclick="downloadCurrentGalleryPhoto()" title="Download photograph" aria-label="Download">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Footer -->

@@ -59,8 +59,10 @@
                     <!-- Avatar with Glowing Neon Ring & Edit Pencil -->
                     <div class="avatar-ring-container">
                         <img id="prof-pic"
-                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop"
-                            alt="Profile avatar">
+                            class="prof-pic-placeholder"
+                            src="favicon.svg"
+                            alt="Profile avatar"
+                            onerror="this.src='favicon.svg';this.classList.add('prof-pic-placeholder');">
                         <div class="avatar-edit-badge" onclick="openSettings()" title="Change avatar">
                             <i class="fas fa-pencil-alt"></i>
                         </div>
@@ -154,8 +156,10 @@
                 <div class="settings-avatar-row">
                     <div class="settings-avatar-wrap">
                         <img id="set-pic-preview"
-                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop"
-                            alt="Profile preview">
+                            class="prof-pic-placeholder"
+                            src="favicon.svg"
+                            alt="Profile preview"
+                            onerror="this.src='favicon.svg';this.classList.add('prof-pic-placeholder');">
                         <label for="set-pic" class="avatar-upload-overlay" title="Upload new photo">
                             <i class="fas fa-camera"></i>
                         </label>
@@ -213,10 +217,31 @@
     </div>
 
     <!-- Lightbox for profile images -->
-    <div class="lightbox" id="profileLightbox" style="display:none;">
-        <span class="close-lightbox" onclick="closeProfileLightbox()">&times;</span>
-        <img class="lightbox-content" id="profileLightboxImg" src="" alt="Full view">
-        <div class="lightbox-caption" id="profileLightboxCaption"></div>
+    <div class="lightbox" id="profileLightbox" style="display:none;" role="dialog" aria-modal="true" aria-label="Photo viewer">
+        <button type="button" class="close-lightbox" onclick="closeProfileLightbox()" aria-label="Close viewer">
+            <i class="fas fa-xmark"></i>
+        </button>
+        <button type="button" class="lightbox-nav-btn prev-btn" id="profLightboxPrev" onclick="navigateProfileLightbox(-1)" aria-label="Previous photograph">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button type="button" class="lightbox-nav-btn next-btn" id="profLightboxNext" onclick="navigateProfileLightbox(1)" aria-label="Next photograph">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <div class="lightbox-stage" id="profileLightboxStage">
+            <img class="lightbox-content" id="profileLightboxImg" src="" alt="Full view">
+            <div class="lightbox-dock-overlay" id="profileLightboxBottomBar">
+                <div class="lightbox-dock-left" id="profileLightboxCaption"></div>
+                <div class="lightbox-dock-right">
+                    <button type="button" class="lightbox-icon-btn" onclick="shareCurrentProfilePhoto()" title="Share photograph" aria-label="Share">
+                        <i class="fas fa-share-nodes"></i>
+                    </button>
+                    <button type="button" class="lightbox-icon-btn" onclick="downloadCurrentProfilePhoto()" title="Download photograph" aria-label="Download">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/main.js"></script>
@@ -323,7 +348,7 @@
 
                     const photoUploader = (p.username || currentProfileUsername || '').replace(/^@/, '').toLowerCase();
                     return `
-                        <div class="profile-photo-card" data-photo-id="${p.id}" style="--index: ${index}" onclick="openProfileLightbox('${p.src}', '${safeTitle}', '${photoUploader}')">
+                        <div class="profile-photo-card" data-photo-id="${p.id}" style="--index: ${index}" onclick="openProfileLightbox('${p.src}', '${safeTitle}', '${photoUploader}', ${index})">
                             <img src="${p.src}" alt="${safeTitle}" loading="lazy">
                             ${isProfileOwner ? `<button class="card-quick-delete" onclick="event.stopPropagation(); deletePhoto('${p.id}')" title="Delete photograph" aria-label="Delete"><i class="fas fa-trash"></i></button>` : ''}
                             <div class="profile-card-overlay">
@@ -331,7 +356,7 @@
                                     <i class="${isLiked ? 'fas fa-heart liked' : 'far fa-heart'}"></i>
                                     <span id="like-count-${p.id}">${likeCount}</span>
                                 </button>
-                                <button class="card-more-btn" onclick="event.stopPropagation(); openProfileLightbox('${p.src}', '${safeTitle}', '${photoUploader}')" title="View options">
+                                <button class="card-more-btn" onclick="event.stopPropagation(); openProfileLightbox('${p.src}', '${safeTitle}', '${photoUploader}', ${index})" title="View options">
                                     <i class="fas fa-ellipsis-h"></i>
                                 </button>
                             </div>
@@ -412,8 +437,12 @@
                 }
 
                 if (!profileUser) {
-                    alert('User not found!');
-                    window.location.href = 'gallery.html';
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('User not found!', 'error');
+                    } else {
+                        alert('User not found!');
+                    }
+                    setTimeout(() => { window.location.href = 'gallery.html'; }, 1000);
                     return;
                 }
 
@@ -441,8 +470,17 @@
                 const specialtyEl = document.getElementById('about-specialty');
                 if (specialtyEl) specialtyEl.innerText = userSpecialty;
 
+                const profPicEl = document.getElementById('prof-pic');
                 if (profileUser.profile_picture_url) {
-                    document.getElementById('prof-pic').src = profileUser.profile_picture_url;
+                    profPicEl.src = profileUser.profile_picture_url;
+                    profPicEl.classList.remove('prof-pic-placeholder');
+                    profPicEl.onerror = () => {
+                        profPicEl.src = 'favicon.svg';
+                        profPicEl.classList.add('prof-pic-placeholder');
+                    };
+                } else {
+                    profPicEl.src = 'favicon.svg';
+                    profPicEl.classList.add('prof-pic-placeholder');
                 }
 
                 // Modern clean posts count
@@ -493,6 +531,11 @@
             const previewPic = document.getElementById('set-pic-preview');
             if (currentProfPic && previewPic && currentProfPic.src) {
                 previewPic.src = currentProfPic.src;
+                if (currentProfPic.classList.contains('prof-pic-placeholder') || currentProfPic.src.includes('favicon.svg')) {
+                    previewPic.classList.add('prof-pic-placeholder');
+                } else {
+                    previewPic.classList.remove('prof-pic-placeholder');
+                }
             }
             const fileInput = document.getElementById('set-pic');
             if (fileInput) fileInput.value = '';
@@ -510,6 +553,7 @@
                     const previewPic = document.getElementById('set-pic-preview');
                     if (previewPic) {
                         previewPic.src = URL.createObjectURL(file);
+                        previewPic.classList.remove('prof-pic-placeholder');
                     }
                 }
             });
@@ -520,9 +564,16 @@
         });
 
         document.addEventListener('keydown', (e) => {
+            const lb = document.getElementById('profileLightbox');
+            const isLbActive = lb && (lb.classList.contains('modal-active') || lb.style.display === 'flex');
+
             if (e.key === 'Escape') {
                 closeSettings();
                 closeProfileLightbox();
+            } else if (isLbActive && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) {
+                navigateProfileLightbox(-1);
+            } else if (isLbActive && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) {
+                navigateProfileLightbox(1);
             }
         });
 
@@ -579,10 +630,13 @@
                         localStorage.setItem('ag_user_about_' + newUsername, newAbout);
                     }
 
+                    const profPic = document.getElementById('prof-pic');
                     if (data.profile_picture_url) {
-                        document.getElementById('prof-pic').src = data.profile_picture_url;
+                        profPic.src = data.profile_picture_url;
+                        profPic.classList.remove('prof-pic-placeholder');
                     } else if (pic) {
-                        document.getElementById('prof-pic').src = URL.createObjectURL(pic);
+                        profPic.src = URL.createObjectURL(pic);
+                        profPic.classList.remove('prof-pic-placeholder');
                     }
 
                     saveStatus.style.color = '#34d399';
@@ -635,29 +689,98 @@
             window.location.href = 'index.html';
         }
 
-        // Lightbox: Clean photographer badge, NO ugly camera logo, Tap to open profile!
-        function openProfileLightbox(src, title, uploader) {
+        // --- CINEMATIC PROFILE LIGHTBOX SYSTEM (Navigation, Download, Share, Swipe) ---
+        let activeProfilePhotoIndex = 0;
+
+        function openProfileLightbox(src, title, uploader, index) {
             const lb = document.getElementById('profileLightbox');
+            if (!lb) return;
+
+            if (typeof index === 'number') {
+                activeProfilePhotoIndex = index;
+            } else if (currentUserPhotos && currentUserPhotos.length > 0) {
+                const found = currentUserPhotos.findIndex(p => p.src === src);
+                activeProfilePhotoIndex = found !== -1 ? found : 0;
+            } else {
+                activeProfilePhotoIndex = 0;
+            }
+
+            updateProfileLightboxDisplay();
+            lb.style.display = 'flex';
+            lb.classList.add('modal-active');
+        }
+
+        function updateProfileLightboxDisplay() {
             const img = document.getElementById('profileLightboxImg');
             const cap = document.getElementById('profileLightboxCaption');
-            if (!lb || !img) return;
-            img.src = src;
+            const stage = document.getElementById('profileLightboxStage');
+            if (!img) return;
 
-            const targetUser = (uploader || currentProfileUsername || 'creator').replace(/^@/, '').toLowerCase();
+            let photo = (currentUserPhotos && currentUserPhotos[activeProfilePhotoIndex]) || null;
+            let photoSrc = photo ? photo.src : img.src;
+            let targetUser = (photo?.username || currentProfileUsername || 'creator').replace(/^@/, '').toLowerCase();
+
+            img.src = photoSrc;
+
+            const applyAspect = () => {
+                if (stage && img.naturalWidth && img.naturalHeight) {
+                    stage.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+                }
+            };
+            img.onload = applyAspect;
+            if (img.complete) {
+                applyAspect();
+            }
 
             if (cap) {
+                const currentProfPic = document.getElementById('prof-pic')?.src || '';
+                const avatarMarkup = (currentProfPic && !currentProfPic.includes('undefined'))
+                    ? `<img src="${currentProfPic}" alt="${targetUser}" class="creator-avatar-img">`
+                    : `<i class="fas fa-user"></i>`;
+
                 cap.innerHTML = `
                     <a href="profile.html?username=${encodeURIComponent(targetUser)}" class="lightbox-creator-badge" title="View @${targetUser}'s profile">
                         <div class="creator-badge-avatar">
-                            <i class="fas fa-user"></i>
+                            ${avatarMarkup}
                         </div>
                         <span class="creator-badge-handle">@${targetUser}</span>
-                        <i class="fas fa-arrow-right creator-badge-arrow"></i>
                     </a>
                 `;
             }
-            lb.style.display = 'flex';
-            lb.classList.add('modal-active');
+
+            const prevBtn = document.getElementById('profLightboxPrev');
+            const nextBtn = document.getElementById('profLightboxNext');
+            const hasMultiple = currentUserPhotos && currentUserPhotos.length > 1;
+            if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
+            if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
+        }
+
+        function navigateProfileLightbox(direction) {
+            if (!currentUserPhotos || currentUserPhotos.length <= 1) return;
+            activeProfilePhotoIndex = (activeProfilePhotoIndex + direction + currentUserPhotos.length) % currentUserPhotos.length;
+            updateProfileLightboxDisplay();
+        }
+
+        function shareCurrentProfilePhoto() {
+            const photo = currentUserPhotos && currentUserPhotos[activeProfilePhotoIndex];
+            const src = photo ? photo.src : (document.getElementById('profileLightboxImg')?.src || window.location.href);
+            const title = photo?.title || 'AfterGlow Photograph';
+            const uploader = (photo?.username || currentProfileUsername || '').replace(/^@/, '');
+            if (typeof window.sharePhoto === 'function') {
+                window.sharePhoto(src, title, uploader);
+            } else if (typeof window.copyPhotoLink === 'function') {
+                window.copyPhotoLink(src);
+            }
+        }
+
+        function downloadCurrentProfilePhoto() {
+            const photo = currentUserPhotos && currentUserPhotos[activeProfilePhotoIndex];
+            const src = photo ? photo.src : (document.getElementById('profileLightboxImg')?.src || '');
+            const rawTitle = (photo && photo.title) ? photo.title : 'AfterGlow-Photograph';
+            const safeFilename = rawTitle.replace(/[^a-zA-Z0-9_-]/g, '_') + '.jpg';
+            if (typeof window.downloadPhotoFile === 'function') {
+                window.downloadPhotoFile(src, safeFilename);
+            }
         }
 
         function closeProfileLightbox() {
@@ -670,6 +793,88 @@
         document.getElementById('profileLightbox').addEventListener('click', function (e) {
             if (e.target === this) closeProfileLightbox();
         });
+
+        // Touch & Mouse Drag Swipe Navigation for Profile Lightbox
+        (function() {
+            const stage = document.getElementById('profileLightboxStage');
+            if (!stage) return;
+
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isTouchSwiping = false;
+
+            stage.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
+                if (e.touches && e.touches[0]) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    isTouchSwiping = true;
+                }
+            }, { passive: true });
+
+            stage.addEventListener('touchmove', (e) => {
+                if (!isTouchSwiping || !e.touches || !e.touches[0]) return;
+                const diffX = e.touches[0].clientX - touchStartX;
+                const diffY = e.touches[0].clientY - touchStartY;
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    stage.style.transform = `translateX(${diffX * 0.4}px)`;
+                }
+            }, { passive: true });
+
+            stage.addEventListener('touchend', (e) => {
+                if (!isTouchSwiping) return;
+                isTouchSwiping = false;
+                stage.style.transition = 'transform 0.25s ease';
+                stage.style.transform = '';
+                if (e.changedTouches && e.changedTouches[0]) {
+                    const diffX = e.changedTouches[0].clientX - touchStartX;
+                    const diffY = e.changedTouches[0].clientY - touchStartY;
+                    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+                        if (diffX < 0) navigateProfileLightbox(1);
+                        else navigateProfileLightbox(-1);
+                    }
+                }
+                setTimeout(() => { if (stage) stage.style.transition = ''; }, 260);
+            }, { passive: true });
+
+            // Desktop Mouse Drag Swipe
+            let isMouseDown = false;
+            let mouseStartX = 0;
+            let hasDragged = false;
+
+            stage.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
+                isMouseDown = true;
+                hasDragged = false;
+                mouseStartX = e.clientX;
+                stage.classList.add('dragging');
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isMouseDown) return;
+                const diffX = e.clientX - mouseStartX;
+                if (Math.abs(diffX) > 5) {
+                    hasDragged = true;
+                    stage.style.transform = `translateX(${diffX * 0.45}px)`;
+                }
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!isMouseDown) return;
+                isMouseDown = false;
+                stage.classList.remove('dragging');
+                stage.style.transition = 'transform 0.25s ease';
+                stage.style.transform = '';
+                if (hasDragged) {
+                    const diffX = e.clientX - mouseStartX;
+                    if (Math.abs(diffX) > 40) {
+                        if (diffX < 0) navigateProfileLightbox(1);
+                        else navigateProfileLightbox(-1);
+                    }
+                }
+                setTimeout(() => { if (stage) stage.style.transition = ''; }, 260);
+            });
+        })();
     </script>
 </body>
 

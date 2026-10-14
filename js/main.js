@@ -95,7 +95,7 @@ function initGlobalSearch() {
                     if (users.length > 0) {
                         dropdown.innerHTML = users.map(u => `
                             <a href="profile.html?username=${u.username}">
-                                <img src="${u.profile_picture_url || 'https://via.placeholder.com/40'}" alt="${u.username}">
+                                <img src="${u.profile_picture_url || 'favicon.svg'}" onerror="this.src='favicon.svg'" alt="${u.username}">
                                 @${u.username}
                             </a>
                         `).join('');
@@ -199,6 +199,83 @@ async function updateHeroImages() {
 
 // Arch Carousel Initialization and Rotation Logic
 let archOffsetDegree = 0;
+let currentHomeArchPhotos = [];
+let currentHomeArchIndex = 0;
+
+function updateHomeLightboxDisplay() {
+    if (!currentHomeArchPhotos || currentHomeArchPhotos.length === 0) return;
+    const photo = currentHomeArchPhotos[currentHomeArchIndex];
+    if (!photo) return;
+
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const stage = document.getElementById('homeLightboxStage');
+
+    if (lightboxImg) {
+        lightboxImg.src = photo.src;
+        lightboxImg.alt = photo.title || 'Exhibition photograph';
+
+        const applyAspect = () => {
+            if (stage && lightboxImg.naturalWidth && lightboxImg.naturalHeight) {
+                stage.style.aspectRatio = `${lightboxImg.naturalWidth} / ${lightboxImg.naturalHeight}`;
+            }
+        };
+        lightboxImg.onload = applyAspect;
+        if (lightboxImg.complete) {
+            applyAspect();
+        }
+    }
+
+    if (lightboxCaption) {
+        const uploader = (photo.username || 'creator').replace(/^@/, '').toLowerCase();
+        const avatarUrl = photo.userAvatar || '';
+        const avatarMarkup = avatarUrl
+            ? `<img src="${avatarUrl}" alt="${uploader}" class="creator-avatar-img">`
+            : `<i class="fas fa-user"></i>`;
+
+        lightboxCaption.innerHTML = `
+            <a href="profile.html?username=${encodeURIComponent(uploader)}" class="lightbox-creator-badge" title="View @${uploader}'s profile">
+                <div class="creator-badge-avatar">
+                    ${avatarMarkup}
+                </div>
+                <span class="creator-badge-handle">@${uploader}</span>
+            </a>
+        `;
+    }
+
+    const prevBtn = document.getElementById('homeLightboxPrev');
+    const nextBtn = document.getElementById('homeLightboxNext');
+    const hasMultiple = currentHomeArchPhotos.length > 1;
+    if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
+    if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
+}
+
+window.navigateHomeLightbox = function(direction) {
+    if (!currentHomeArchPhotos || currentHomeArchPhotos.length <= 1) return;
+    currentHomeArchIndex = (currentHomeArchIndex + direction + currentHomeArchPhotos.length) % currentHomeArchPhotos.length;
+    updateHomeLightboxDisplay();
+};
+
+window.shareCurrentHomePhoto = function() {
+    const photo = currentHomeArchPhotos[currentHomeArchIndex];
+    const src = photo ? photo.src : (document.getElementById('lightbox-img')?.src || window.location.href);
+    const title = (photo && photo.title) ? photo.title : 'AfterGlow Photograph';
+    const uploader = (photo && photo.username) ? photo.username : 'photographer';
+    if (typeof window.sharePhoto === 'function') {
+        window.sharePhoto(src, title, uploader);
+    } else {
+        window.copyPhotoLink(src);
+    }
+};
+
+window.downloadCurrentHomePhoto = function() {
+    const photo = currentHomeArchPhotos[currentHomeArchIndex];
+    const src = photo ? photo.src : (document.getElementById('lightbox-img')?.src || '');
+    const rawTitle = (photo && photo.title) ? photo.title : 'AfterGlow-Photograph';
+    const safeFilename = rawTitle.replace(/[^a-zA-Z0-9_-]/g, '_') + '.jpg';
+    window.downloadPhotoFile(src, safeFilename);
+};
+
 async function initArchCarousel() {
     const archContainer = document.getElementById('archCarousel');
     const wrapper = document.querySelector('.arch-carousel-wrapper');
@@ -213,6 +290,7 @@ async function initArchCarousel() {
 
         // Take up to 11 chronological photos for a wide smooth arc
         const archPhotos = photos.slice(0, 11);
+        currentHomeArchPhotos = archPhotos;
         archContainer.innerHTML = '';
 
         const spacing = 15;
@@ -246,22 +324,10 @@ async function initArchCarousel() {
 
                 if (Math.abs(absoluteAngle) < 3) {
                     // Center image -> Open Lightbox
+                    currentHomeArchIndex = index;
+                    updateHomeLightboxDisplay();
                     const lightbox = document.getElementById('lightbox');
-                    const lightboxImg = document.getElementById('lightbox-img');
-                    const lightboxCaption = document.getElementById('lightbox-caption');
-
-                    if (lightbox && lightboxImg) {
-                        lightboxImg.src = photo.src;
-                        const uploader = (photo.username || 'creator').replace(/^@/, '').toLowerCase();
-                        lightboxCaption.innerHTML = `
-                            <a href="profile.html?username=${encodeURIComponent(uploader)}" class="lightbox-creator-badge" title="View @${uploader}'s profile">
-                                <div class="creator-badge-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <span class="creator-badge-handle">@${uploader}</span>
-                                <i class="fas fa-arrow-right creator-badge-arrow"></i>
-                            </a>
-                        `;
+                    if (lightbox) {
                         lightbox.classList.add('modal-active');
                     }
                 } else {
@@ -381,8 +447,97 @@ document.addEventListener('click', function (e) {
 
 document.addEventListener('keydown', function (e) {
     const lightbox = document.getElementById('lightbox');
-    if (lightbox && e.key === 'Escape' && (lightbox.classList.contains('modal-active') || lightbox.style.display === 'block' || lightbox.style.display === 'flex')) {
+    const isLbActive = lightbox && (lightbox.classList.contains('modal-active') || lightbox.style.display === 'block' || lightbox.style.display === 'flex');
+    if (lightbox && e.key === 'Escape' && isLbActive) {
         closeLightbox();
+    } else if (isLbActive && typeof window.navigateHomeLightbox === 'function' && document.getElementById('archCarousel')) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            window.navigateHomeLightbox(-1);
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            window.navigateHomeLightbox(1);
+        }
+    }
+});
+
+// Touch & Mouse Drag Swipe support for home lightbox
+document.addEventListener('DOMContentLoaded', function () {
+    const stage = document.getElementById('homeLightboxStage');
+    if (stage && document.getElementById('archCarousel')) {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTouchSwiping = false;
+
+        stage.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
+            if (e.touches && e.touches[0]) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isTouchSwiping = true;
+            }
+        }, { passive: true });
+
+        stage.addEventListener('touchmove', (e) => {
+            if (!isTouchSwiping || !e.touches || !e.touches[0]) return;
+            const diffX = e.touches[0].clientX - touchStartX;
+            const diffY = e.touches[0].clientY - touchStartY;
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                stage.style.transform = `translateX(${diffX * 0.4}px)`;
+            }
+        }, { passive: true });
+
+        stage.addEventListener('touchend', (e) => {
+            if (!isTouchSwiping) return;
+            isTouchSwiping = false;
+            stage.style.transition = 'transform 0.25s ease';
+            stage.style.transform = '';
+            if (e.changedTouches && e.changedTouches[0]) {
+                const diffX = e.changedTouches[0].clientX - touchStartX;
+                const diffY = e.changedTouches[0].clientY - touchStartY;
+                if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+                    if (diffX < 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(1);
+                    else if (diffX > 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(-1);
+                }
+            }
+            setTimeout(() => { if (stage) stage.style.transition = ''; }, 260);
+        }, { passive: true });
+
+        // Desktop Mouse Drag Swipe
+        let isMouseDown = false;
+        let mouseStartX = 0;
+        let hasDragged = false;
+
+        stage.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
+            isMouseDown = true;
+            hasDragged = false;
+            mouseStartX = e.clientX;
+            stage.classList.add('dragging');
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+            const diffX = e.clientX - mouseStartX;
+            if (Math.abs(diffX) > 5) {
+                hasDragged = true;
+                stage.style.transform = `translateX(${diffX * 0.45}px)`;
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (!isMouseDown) return;
+            isMouseDown = false;
+            stage.classList.remove('dragging');
+            stage.style.transition = 'transform 0.25s ease';
+            stage.style.transform = '';
+            if (hasDragged) {
+                const diffX = e.clientX - mouseStartX;
+                if (Math.abs(diffX) > 40) {
+                    if (diffX < 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(1);
+                    else if (diffX > 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(-1);
+                }
+            }
+            setTimeout(() => { if (stage) stage.style.transition = ''; }, 260);
+        });
     }
 });
 
@@ -456,42 +611,318 @@ function setupRealtimeSSE() {
     }
 }
 
-function showRealtimeToast(msg) {
-    let toast = document.getElementById('rt-toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'rt-toast';
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            background: rgba(15, 23, 42, 0.95);
-            color: #fff;
-            padding: 12px 22px;
-            border-radius: 30px;
-            border: 1px solid var(--primary-color, #ec4899);
-            box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
-            font-size: 0.9rem;
-            font-weight: 500;
-            z-index: 9999;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            backdrop-filter: blur(12px);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        `;
-        document.body.appendChild(toast);
+// Universal High-End Toast Notification System
+window.showToast = function (message, type = 'info', duration = 3500) {
+    let container = document.getElementById('ag-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'ag-toast-container';
+        container.className = 'ag-toast-container';
+        document.body.appendChild(container);
     }
-    toast.innerHTML = `<i class="fas fa-bolt" style="color: var(--primary-color, #ec4899);"></i> ` + msg;
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
 
-    clearTimeout(toast._timeout);
-    toast._timeout = setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(20px)';
-    }, 4000);
+    const toast = document.createElement('div');
+    toast.className = `ag-toast toast-${type}`;
+
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    else if (type === 'error') iconClass = 'fa-circle-xmark';
+    else if (type === 'warning') iconClass = 'fa-triangle-exclamation';
+
+    toast.innerHTML = `
+        <span class="ag-toast-icon"><i class="fas ${iconClass}"></i></span>
+        <span class="ag-toast-text">${message}</span>
+        <button class="ag-toast-close" aria-label="Close notification">&times;</button>
+    `;
+
+    container.appendChild(toast);
+
+    // Trigger entrance animation
+    requestAnimationFrame(() => {
+        toast.classList.add('toast-show');
+    });
+
+    const removeToast = () => {
+        toast.classList.remove('toast-show');
+        setTimeout(() => toast.remove(), 320);
+    };
+
+    const closeBtn = toast.querySelector('.ag-toast-close');
+    if (closeBtn) closeBtn.addEventListener('click', removeToast);
+
+    if (duration > 0) {
+        setTimeout(removeToast, duration);
+    }
+};
+
+function showRealtimeToast(msg) {
+    window.showToast(msg, 'info', 4000);
 }
+
+// Universal High-Resolution Photo Downloader
+window.downloadPhotoFile = async function (url, filename = 'AfterGlow-Photograph.jpg') {
+    if (!url) return;
+    window.showToast('📥 Downloading photograph...', 'info', 2200);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Fetch failed');
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = filename || 'AfterGlow-Photograph.jpg';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(blobUrl);
+        a.remove();
+        window.showToast('✓ Photograph downloaded successfully!', 'success');
+    } catch (e) {
+        // Fallback for cross-origin or constrained environments
+        const a = document.createElement('a');
+        a.target = '_blank';
+        a.href = url;
+        a.download = filename || 'AfterGlow-Photograph.jpg';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.showToast('✓ Photograph opened for download!', 'success');
+    }
+};
+
+// Universal Clipboard Copy Helper with Toast Notification
+window.copyToClipboard = async function (text, message = '✨ Photo link copied to clipboard!') {
+    let copied = false;
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            copied = true;
+        }
+    } catch (err) {
+        // Fallback to execCommand if writeText fails
+    }
+
+    if (!copied) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            ta.style.top = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            copied = document.execCommand('copy');
+            ta.remove();
+        } catch (e) {
+            copied = false;
+        }
+    }
+
+    if (typeof window.showToast === 'function') {
+        window.showToast(message, 'success');
+    }
+    return copied;
+};
+
+// Universal Share / Copy Link Helper
+window.copyPhotoLink = function (url) {
+    const targetUrl = url || window.location.href;
+    window.copyToClipboard(targetUrl, '✨ Photo link copied to clipboard!');
+};
+
+// Universal Interactive Glassmorphic Share Modal
+window.closeShareModal = function () {
+    const overlay = document.getElementById('ag-share-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+};
+
+window.openShareModal = function ({ url, title, uploader } = {}) {
+    const shareUrl = url || window.location.href;
+    const cleanUser = (uploader || 'photographer').replace(/^@/, '');
+    const cleanTitle = title || 'Captivating Photograph';
+    const shareText = `Check out "${cleanTitle}" by @${cleanUser} on AfterGlow!`;
+
+    let overlay = document.getElementById('ag-share-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'ag-share-overlay';
+        overlay.className = 'ag-share-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'Share photograph');
+
+        overlay.innerHTML = `
+            <div class="ag-share-card">
+                <div class="ag-share-header">
+                    <div class="ag-share-title-wrap">
+                        <div class="ag-share-title-icon"><i class="fas fa-share-nodes"></i></div>
+                        <div class="ag-share-titles">
+                            <h3>Share Photograph</h3>
+                            <p>Share this visual story across other apps</p>
+                        </div>
+                    </div>
+                    <button type="button" class="ag-share-close-btn" id="ag-share-close-btn" aria-label="Close dialog">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="ag-share-preview">
+                    <img class="ag-share-thumb" id="ag-share-thumb" src="" alt="Thumbnail preview">
+                    <div class="ag-share-meta">
+                        <div class="ag-share-item-title" id="ag-share-item-title"></div>
+                        <div class="ag-share-item-author" id="ag-share-item-author"></div>
+                    </div>
+                </div>
+
+                <div class="ag-share-section-label">Share to other apps</div>
+                <div class="ag-share-grid">
+                    <button type="button" class="ag-share-app-btn share-whatsapp" data-app="whatsapp" title="Share via WhatsApp">
+                        <div class="ag-share-app-icon"><i class="fab fa-whatsapp"></i></div>
+                        <span>WhatsApp</span>
+                    </button>
+                    <button type="button" class="ag-share-app-btn share-x" data-app="x" title="Share on X">
+                        <div class="ag-share-app-icon">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </div>
+                        <span>X / Twitter</span>
+                    </button>
+                    <button type="button" class="ag-share-app-btn share-telegram" data-app="telegram" title="Share on Telegram">
+                        <div class="ag-share-app-icon"><i class="fab fa-telegram-plane"></i></div>
+                        <span>Telegram</span>
+                    </button>
+                    <button type="button" class="ag-share-app-btn share-facebook" data-app="facebook" title="Share on Facebook">
+                        <div class="ag-share-app-icon"><i class="fab fa-facebook-f"></i></div>
+                        <span>Facebook</span>
+                    </button>
+                    <button type="button" class="ag-share-app-btn share-reddit" data-app="reddit" title="Share on Reddit">
+                        <div class="ag-share-app-icon"><i class="fab fa-reddit-alien"></i></div>
+                        <span>Reddit</span>
+                    </button>
+                    <button type="button" class="ag-share-app-btn share-native" data-app="native" title="More options on your device">
+                        <div class="ag-share-app-icon"><i class="fas fa-ellipsis"></i></div>
+                        <span>More Apps</span>
+                    </button>
+                </div>
+
+                <div class="ag-share-section-label">Or copy direct link</div>
+                <div class="ag-share-link-box">
+                    <input type="text" class="ag-share-input" id="ag-share-input" readonly value="">
+                    <button type="button" class="ag-share-copy-btn" id="ag-share-copy-btn" title="Copy photo link">
+                        <i class="far fa-copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) window.closeShareModal();
+        });
+
+        const closeBtn = overlay.querySelector('#ag-share-close-btn');
+        if (closeBtn) closeBtn.addEventListener('click', window.closeShareModal);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay.classList.contains('active')) {
+                window.closeShareModal();
+            }
+        });
+    }
+
+    // Populate data
+    const thumbEl = overlay.querySelector('#ag-share-thumb');
+    if (thumbEl) {
+        thumbEl.src = shareUrl;
+        thumbEl.onerror = () => { thumbEl.src = 'favicon.svg'; };
+    }
+    const titleEl = overlay.querySelector('#ag-share-item-title');
+    if (titleEl) titleEl.innerText = cleanTitle;
+
+    const authorEl = overlay.querySelector('#ag-share-item-author');
+    if (authorEl) authorEl.innerText = `@${cleanUser}`;
+
+    const inputEl = overlay.querySelector('#ag-share-input');
+    if (inputEl) inputEl.value = shareUrl;
+
+    const copyBtn = overlay.querySelector('#ag-share-copy-btn');
+    if (copyBtn) {
+        copyBtn.onclick = async () => {
+            await window.copyToClipboard(shareUrl, '✨ Photo link copied to clipboard!');
+            copyBtn.classList.add('copied');
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> <span>Copied!</span>';
+            setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.innerHTML = '<i class="far fa-copy"></i> <span>Copy</span>';
+            }, 2000);
+        };
+    }
+
+    // Configure App buttons
+    const waBtn = overlay.querySelector('.ag-share-app-btn.share-whatsapp');
+    if (waBtn) {
+        waBtn.onclick = () => {
+            const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`;
+            window.open(waUrl, '_blank', 'noopener,noreferrer');
+        };
+    }
+
+    const xBtn = overlay.querySelector('.ag-share-app-btn.share-x');
+    if (xBtn) {
+        xBtn.onclick = () => {
+            const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+            window.open(xUrl, '_blank', 'noopener,noreferrer');
+        };
+    }
+
+    const tgBtn = overlay.querySelector('.ag-share-app-btn.share-telegram');
+    if (tgBtn) {
+        tgBtn.onclick = () => {
+            const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+            window.open(tgUrl, '_blank', 'noopener,noreferrer');
+        };
+    }
+
+    const fbBtn = overlay.querySelector('.ag-share-app-btn.share-facebook');
+    if (fbBtn) {
+        fbBtn.onclick = () => {
+            const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+            window.open(fbUrl, '_blank', 'noopener,noreferrer');
+        };
+    }
+
+    const rdBtn = overlay.querySelector('.ag-share-app-btn.share-reddit');
+    if (rdBtn) {
+        rdBtn.onclick = () => {
+            const rdUrl = `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`;
+            window.open(rdUrl, '_blank', 'noopener,noreferrer');
+        };
+    }
+
+    const nativeBtn = overlay.querySelector('.ag-share-app-btn.share-native');
+    if (nativeBtn) {
+        nativeBtn.onclick = () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: cleanTitle,
+                    text: shareText,
+                    url: shareUrl
+                }).catch(() => {});
+            } else {
+                window.copyToClipboard(shareUrl, '✨ Photo link copied to clipboard!');
+            }
+        };
+    }
+
+    requestAnimationFrame(() => {
+        overlay.classList.add('active');
+    });
+};
+
+// Universal Share Photo Entrypoint
+window.sharePhoto = function (url, title, uploader) {
+    window.openShareModal({ url, title, uploader });
+};

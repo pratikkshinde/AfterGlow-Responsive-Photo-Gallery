@@ -32,9 +32,18 @@
                 </a>
             </div>
             <div class="nav-links" id="navLinks">
+                <div class="nav-drawer-header">
+                    <div class="nav-drawer-brand">
+                        <i class="fas fa-camera-retro"></i>
+                        <span>AfterGlow</span>
+                    </div>
+                    <button type="button" class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
                 <div class="nav-search">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="global-search" placeholder="Search users...">
+                    <input type="text" class="global-search" placeholder="Search creators...">
                     <div class="search-dropdown"></div>
                 </div>
                 <a href="index.html"><i class="fas fa-home"></i> Home</a>
@@ -47,6 +56,7 @@
                 <i class="fas fa-bars"></i>
             </div>
         </div>
+        <div class="nav-backdrop" id="navBackdrop"></div>
     </nav>
 
     <!-- Main Profile Section -->
@@ -54,7 +64,6 @@
         <!-- Hero Banner Card -->
         <div class="profile-banner-card">
             <div class="profile-banner-inner">
-                <!-- Left: Avatar + Details -->
                 <div class="banner-left-group">
                     <!-- Avatar with Glowing Neon Ring & Edit Pencil -->
                     <div class="avatar-ring-container">
@@ -68,15 +77,13 @@
                         </div>
                     </div>
 
-                    <!-- Info block -->
+                    <!-- Details in exact order of screenshot: Name, Handle, Bio, Posts -->
                     <div class="banner-info">
                         <div class="user-identity-block">
                             <h1 class="prof-display-name" id="prof-display-name">Loading...</h1>
                             <div class="prof-username-handle" id="prof-username">@username</div>
                         </div>
                         <p class="profile-bio-text" id="prof-bio">Capturing moments, not just photos. ✨</p>
-
-                        <!-- Clean modern posts counter (no icon) -->
                         <div class="banner-stats">
                             <div class="stat-unit">
                                 <span class="stat-number" id="prof-post-count">0</span>
@@ -86,13 +93,13 @@
                     </div>
                 </div>
 
-                <!-- Right: Action Buttons -->
+                <!-- Right: Small circular icon buttons (new icons preserved) -->
                 <div class="banner-actions">
-                    <button class="btn btn-edit-profile" onclick="openSettings()">
-                        <i class="fas fa-cog"></i> Edit Profile
+                    <button type="button" class="profile-icon-btn btn-edit-profile" onclick="openSettings()" title="Edit Profile" aria-label="Edit Profile">
+                        <i class="fas fa-cog"></i>
                     </button>
-                    <button class="btn btn-logout-pill" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> Logout
+                    <button type="button" class="profile-icon-btn btn-logout-pill" onclick="logout()" title="Logout" aria-label="Logout">
+                        <i class="fas fa-arrow-right-from-bracket"></i>
                     </button>
                 </div>
             </div>
@@ -111,9 +118,16 @@
             </button>
         </div>
 
-        <!-- 4-Column Square Photo Grid -->
+        <!-- 4-Column Square Photo Grid with Skeleton Shimmer Placeholders -->
         <div class="profile-photo-grid" id="profile-gallery">
-            <!-- Dynamically populated square photos -->
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
+            <div class="profile-skeleton-card ag-skeleton-shimmer"></div>
         </div>
 
         <!-- Tab Content for About (hidden by default) -->
@@ -221,6 +235,19 @@
         <button type="button" class="close-lightbox" onclick="closeProfileLightbox()" aria-label="Close viewer">
             <i class="fas fa-xmark"></i>
         </button>
+        <div class="lightbox-hotkeys-hint">
+            <span class="hk-chip"><kbd>←</kbd><kbd>→</kbd> Navigate</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>L</kbd> Like</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>S</kbd> Share</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>D</kbd> Download</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>F</kbd> Fullscreen</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>Esc</kbd> Close</span>
+        </div>
         <button type="button" class="lightbox-nav-btn prev-btn" id="profLightboxPrev" onclick="navigateProfileLightbox(-1)" aria-label="Previous photograph">
             <i class="fas fa-chevron-left"></i>
         </button>
@@ -233,6 +260,10 @@
             <div class="lightbox-dock-overlay" id="profileLightboxBottomBar">
                 <div class="lightbox-dock-left" id="profileLightboxCaption"></div>
                 <div class="lightbox-dock-right">
+                    <button type="button" class="lightbox-icon-btn lightbox-like-btn" id="profileLightboxLikeBtn" onclick="toggleCurrentProfilePhotoLike()" title="Like photograph" aria-label="Like">
+                        <i class="far fa-heart" id="profileLightboxHeartIcon"></i>
+                        <span class="lightbox-like-count" id="profileLightboxLikeCount" style="display:none;"></span>
+                    </button>
                     <button type="button" class="lightbox-icon-btn" onclick="shareCurrentProfilePhoto()" title="Share photograph" aria-label="Share">
                         <i class="fas fa-share-nodes"></i>
                     </button>
@@ -250,14 +281,27 @@
         let isProfileOwner = false;
         let currentProfileUsername = '';
 
-        function hashString(str) {
-            let hash = 0;
-            if (!str) return 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = ((hash << 5) - hash) + str.charCodeAt(i);
-                hash |= 0;
+        // --- Responsive Image Helper (supports Cloudinary & Unsplash dynamic variants) ---
+        function buildResponsiveImageMarkup(src, alt = 'Photograph', className = '', extraAttrs = '') {
+            const safeAlt = (alt || 'Photograph').replace(/"/g, '&quot;');
+            let srcset = '';
+            const sizes = '(max-width: 480px) 50vw, (max-width: 960px) 50vw, (max-width: 1440px) 33vw, 25vw';
+
+            if (src && src.includes('res.cloudinary.com') && src.includes('/upload/')) {
+                const parts = src.split('/upload/');
+                const base = parts[0] + '/upload/';
+                const rest = parts[1].replace(/^(f_auto,q_auto[^\/]*\/|w_\d+[^\/]*\/)/, '');
+                srcset = `${base}f_auto,q_auto,w_400/${rest} 400w, ${base}f_auto,q_auto,w_800/${rest} 800w, ${base}f_auto,q_auto,w_1200/${rest} 1200w, ${base}f_auto,q_auto,w_1600/${rest} 1600w`;
+            } else if (src && src.includes('images.unsplash.com')) {
+                const cleanBase = src.split('?')[0];
+                srcset = `${cleanBase}?auto=format&fit=crop&w=400&q=80 400w, ${cleanBase}?auto=format&fit=crop&w=800&q=80 800w, ${cleanBase}?auto=format&fit=crop&w=1200&q=80 1200w, ${cleanBase}?auto=format&fit=crop&w=1600&q=80 1600w`;
             }
-            return hash;
+
+            const loadAttr = 'onload="this.classList.add(\'img-loaded\');"';
+            if (srcset) {
+                return `<img src="${src}" srcset="${srcset}" sizes="${sizes}" alt="${safeAlt}" class="${className}" loading="lazy" ${loadAttr} ${extraAttrs}>`;
+            }
+            return `<img src="${src}" alt="${safeAlt}" class="${className}" loading="lazy" ${loadAttr} ${extraAttrs}>`;
         }
 
         // Toggle like on a photo card
@@ -267,13 +311,14 @@
             const isLiked = localStorage.getItem(userLikedKey) === 'true';
 
             const countEl = document.getElementById(`like-count-${photoId}`);
-            const baseLikes = Math.abs(hashString(photoId)) % 15 + 1;
-            let currentCount = countEl ? parseInt(countEl.innerText, 10) : baseLikes;
+            let currentCount = countEl ? parseInt(countEl.innerText, 10) : 0;
+            if (isNaN(currentCount)) currentCount = 0;
 
             const btn = document.querySelector(`.profile-photo-card[data-photo-id="${photoId}"] .card-like-pill`);
             const heartIcon = btn ? btn.querySelector('i') : null;
 
             if (isLiked) {
+                if (typeof window.agHaptic === 'function') window.agHaptic('light');
                 localStorage.setItem(userLikedKey, 'false');
                 currentCount = Math.max(0, currentCount - 1);
                 localStorage.setItem(likeKey, currentCount);
@@ -281,6 +326,7 @@
                 if (btn) btn.classList.remove('liked');
                 if (heartIcon) heartIcon.className = 'far fa-heart';
             } else {
+                if (typeof window.agHaptic === 'function') window.agHaptic('heart');
                 localStorage.setItem(userLikedKey, 'true');
                 currentCount = currentCount + 1;
                 localStorage.setItem(likeKey, currentCount);
@@ -342,14 +388,13 @@
                     const userLikedKey = `ag_liked_${p.id}`;
                     const storedLikes = localStorage.getItem(likeKey);
                     const isLiked = localStorage.getItem(userLikedKey) === 'true';
-                    const baseLikes = Math.abs(hashString(p.id)) % 15 + 1;
-                    const likeCount = storedLikes !== null ? parseInt(storedLikes, 10) : baseLikes;
+                    const likeCount = storedLikes !== null ? parseInt(storedLikes, 10) : (isLiked ? 1 : 0);
                     const safeTitle = (p.title || 'Photograph').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                     const photoUploader = (p.username || currentProfileUsername || '').replace(/^@/, '').toLowerCase();
                     return `
                         <div class="profile-photo-card" data-photo-id="${p.id}" style="--index: ${index}" onclick="openProfileLightbox('${p.src}', '${safeTitle}', '${photoUploader}', ${index})">
-                            <img src="${p.src}" alt="${safeTitle}" loading="lazy">
+                            ${buildResponsiveImageMarkup(p.src, safeTitle, 'profile-card-img', 'onerror="this.onerror=null; this.src=\'https://images.unsplash.com/photo-1506744012022-df38ba83437e?q=80&w=800&auto=format&fit=crop\';"')}
                             ${isProfileOwner ? `<button class="card-quick-delete" onclick="event.stopPropagation(); deletePhoto('${p.id}')" title="Delete photograph" aria-label="Delete"><i class="fas fa-trash"></i></button>` : ''}
                             <div class="profile-card-overlay">
                                 <button class="card-like-pill ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); togglePhotoLike('${p.id}')" title="Like">
@@ -432,7 +477,8 @@
                     const uRes = await fetch(`/api/user/public/${targetUsername}`);
                     if (uRes.ok) profileUser = await uRes.json();
 
-                    const pRes = await fetch(`/api/photos/public/${targetUsername}`);
+                    const pubHeaders = token ? { 'Authorization': 'Bearer ' + token } : {};
+                    const pRes = await fetch(`/api/photos/public/${targetUsername}`, { headers: pubHeaders });
                     if (pRes.ok) photos = await pRes.json();
                 }
 
@@ -540,9 +586,11 @@
             const fileInput = document.getElementById('set-pic');
             if (fileInput) fileInput.value = '';
             settingsModal.classList.add('modal-active');
+            document.body.classList.add('lightbox-open');
         }
         function closeSettings() {
             settingsModal.classList.remove('modal-active');
+            document.body.classList.remove('lightbox-open');
         }
 
         const picInput = document.getElementById('set-pic');
@@ -708,6 +756,7 @@
             updateProfileLightboxDisplay();
             lb.style.display = 'flex';
             lb.classList.add('modal-active');
+            document.body.classList.add('lightbox-open');
         }
 
         function updateProfileLightboxDisplay() {
@@ -716,11 +765,18 @@
             const stage = document.getElementById('profileLightboxStage');
             if (!img) return;
 
+            if (typeof window.resetProfileLightboxZoom === 'function') {
+                window.resetProfileLightboxZoom(false);
+            }
+
             let photo = (currentUserPhotos && currentUserPhotos[activeProfilePhotoIndex]) || null;
             let photoSrc = photo ? photo.src : img.src;
             let targetUser = (photo?.username || currentProfileUsername || 'creator').replace(/^@/, '').toLowerCase();
 
             img.src = photoSrc;
+            img.onerror = () => {
+                if (stage) stage.style.aspectRatio = '4 / 3';
+            };
 
             const applyAspect = () => {
                 if (stage && img.naturalWidth && img.naturalHeight) {
@@ -748,11 +804,192 @@
                 `;
             }
 
+            // Update Like Button & Privacy-Protected Count
+            const token = localStorage.getItem('ag_token');
+            const me = (function() {
+                if (!token) return null;
+                try {
+                    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                } catch(e) { return null; }
+            })();
+
+            const myUsername = me && me.username ? me.username.toLowerCase() : '';
+            const myId = me && (me.id || me._id);
+            const photoUploader = (photo?.username || currentProfileUsername || '').replace(/^@/, '').toLowerCase();
+            const isUploader = !!(photo?.isUploader || isProfileOwner || (myId && photo?.uploaderId && String(myId) === String(photo?.uploaderId)) || (myUsername && myUsername === photoUploader));
+
+            const isLiked = !!(photo?.isLiked || (photo && localStorage.getItem('ag_photo_liked_' + photo.id) === 'true'));
+
+            const likeBtn = document.getElementById('profileLightboxLikeBtn');
+            const heartIcon = document.getElementById('profileLightboxHeartIcon');
+            const countEl = document.getElementById('profileLightboxLikeCount');
+
+            if (likeBtn && heartIcon) {
+                if (isLiked) {
+                    likeBtn.classList.add('liked');
+                    heartIcon.className = 'fas fa-heart liked';
+                } else {
+                    likeBtn.classList.remove('liked');
+                    heartIcon.className = 'far fa-heart';
+                }
+
+                if (countEl) {
+                    const countVal = (typeof photo?.likesCount === 'number') ? photo.likesCount : (Array.isArray(photo?.likes) ? photo.likes.length : 0);
+                    if (isUploader && countVal > 0) {
+                        countEl.textContent = countVal;
+                        countEl.style.display = 'inline-block';
+                        likeBtn.classList.add('has-count');
+                        likeBtn.setAttribute('title', `${countVal} like${countVal === 1 ? '' : 's'}`);
+                    } else {
+                        countEl.textContent = '';
+                        countEl.style.display = 'none';
+                        likeBtn.classList.remove('has-count');
+                        likeBtn.setAttribute('title', isUploader ? (countVal > 0 ? `${countVal} likes` : 'No likes yet') : (isLiked ? 'Unlike photograph' : 'Like photograph'));
+                    }
+                }
+            }
+
             const prevBtn = document.getElementById('profLightboxPrev');
             const nextBtn = document.getElementById('profLightboxNext');
             const hasMultiple = currentUserPhotos && currentUserPhotos.length > 1;
             if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
             if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
+        }
+
+        function triggerProfileDoubleTapHeart(stage, x, y) {
+            if (!stage) return;
+
+            const heart = document.createElement('div');
+            heart.className = 'double-tap-heart';
+            heart.innerHTML = '<i class="fas fa-heart"></i>';
+
+            if (typeof x === 'number' && typeof y === 'number') {
+                heart.style.left = `${x}px`;
+                heart.style.top = `${y}px`;
+            } else {
+                heart.style.left = '50%';
+                heart.style.top = '50%';
+            }
+
+            const randomRot = (Math.random() * 26 - 13).toFixed(1);
+            heart.style.setProperty('--heart-rot', `${randomRot}deg`);
+
+            stage.appendChild(heart);
+
+            setTimeout(() => {
+                if (heart && heart.parentNode) {
+                    heart.remove();
+                }
+            }, 850);
+        }
+
+        async function toggleCurrentProfilePhotoLike(forceLike = false) {
+            if (!currentUserPhotos || currentUserPhotos.length === 0) return;
+            const photo = currentUserPhotos[activeProfilePhotoIndex];
+            if (!photo || !photo.id) return;
+
+            const token = localStorage.getItem('ag_token');
+            if (!token) {
+                if (window.confirm('Please sign in or create an account to like photographs. Go to login?')) {
+                    window.location.href = 'auth.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                }
+                return;
+            }
+
+            const me = (function() {
+                try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch(e) { return null; }
+            })();
+            const myUsername = me && me.username ? me.username.toLowerCase() : '';
+            const myId = me && (me.id || me._id);
+            const photoUploader = (photo?.username || currentProfileUsername || '').replace(/^@/, '').toLowerCase();
+            const isUploader = !!(photo?.isUploader || isProfileOwner || (myId && photo?.uploaderId && String(myId) === String(photo?.uploaderId)) || (myUsername && myUsername === photoUploader));
+
+            const currentlyLiked = !!(photo.isLiked || localStorage.getItem('ag_photo_liked_' + photo.id) === 'true');
+
+            if (forceLike && currentlyLiked) {
+                return;
+            }
+
+            const newLikedState = forceLike ? true : !currentlyLiked;
+            photo.isLiked = newLikedState;
+
+            if (typeof window.agHaptic === 'function') {
+                window.agHaptic(newLikedState ? 'heart' : 'light');
+            }
+
+            if (newLikedState) {
+                localStorage.setItem('ag_photo_liked_' + photo.id, 'true');
+            } else {
+                localStorage.removeItem('ag_photo_liked_' + photo.id);
+            }
+
+            if (isUploader && typeof photo.likesCount === 'number') {
+                photo.likesCount = Math.max(0, photo.likesCount + (newLikedState ? 1 : -1));
+            }
+
+            const likeBtn = document.getElementById('profileLightboxLikeBtn');
+            const heartIcon = document.getElementById('profileLightboxHeartIcon');
+            const countEl = document.getElementById('profileLightboxLikeCount');
+
+            if (likeBtn && heartIcon) {
+                if (newLikedState) {
+                    likeBtn.classList.add('liked');
+                    heartIcon.className = 'fas fa-heart liked';
+                } else {
+                    likeBtn.classList.remove('liked');
+                    heartIcon.className = 'far fa-heart';
+                }
+
+                if (countEl) {
+                    const curCount = (typeof photo.likesCount === 'number') ? photo.likesCount : 0;
+                    if (isUploader && curCount > 0) {
+                        countEl.textContent = curCount;
+                        countEl.style.display = 'inline-block';
+                        likeBtn.classList.add('has-count');
+                        likeBtn.setAttribute('title', `${curCount} like${curCount === 1 ? '' : 's'}`);
+                    } else {
+                        countEl.textContent = '';
+                        countEl.style.display = 'none';
+                        likeBtn.classList.remove('has-count');
+                        likeBtn.setAttribute('title', isUploader ? 'No likes yet' : (newLikedState ? 'Unlike photograph' : 'Like photograph'));
+                    }
+                }
+            }
+
+            try {
+                const res = await fetch(`/api/photos/${photo.id}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    photo.isLiked = data.liked;
+                    if (data.liked) {
+                        localStorage.setItem('ag_photo_liked_' + photo.id, 'true');
+                    } else {
+                        localStorage.removeItem('ag_photo_liked_' + photo.id);
+                    }
+                    if (isUploader && typeof data.likesCount === 'number') {
+                        photo.likesCount = data.likesCount;
+                        if (countEl) {
+                            if (data.likesCount > 0) {
+                                countEl.textContent = data.likesCount;
+                                countEl.style.display = 'inline-block';
+                                likeBtn.classList.add('has-count');
+                            } else {
+                                countEl.textContent = '';
+                                countEl.style.display = 'none';
+                                likeBtn.classList.remove('has-count');
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Profile photo like error:', err);
+            }
         }
 
         function navigateProfileLightbox(direction) {
@@ -776,17 +1013,57 @@
         function downloadCurrentProfilePhoto() {
             const photo = currentUserPhotos && currentUserPhotos[activeProfilePhotoIndex];
             const src = photo ? photo.src : (document.getElementById('profileLightboxImg')?.src || '');
-            const rawTitle = (photo && photo.title) ? photo.title : 'AfterGlow-Photograph';
-            const safeFilename = rawTitle.replace(/[^a-zA-Z0-9_-]/g, '_') + '.jpg';
+            const cleanTitle = (typeof window.formatPhotoDisplayTitle === 'function')
+                ? window.formatPhotoDisplayTitle(photo?.title, photo?.username || currentProfileUsername)
+                : ((photo && photo.title) ? photo.title : 'AfterGlow-Photograph');
+            const safeFilename = cleanTitle.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') + '.jpg';
             if (typeof window.downloadPhotoFile === 'function') {
-                window.downloadPhotoFile(src, safeFilename);
+                window.downloadPhotoFile(src, safeFilename || 'AfterGlow-Photograph.jpg');
             }
         }
+
+        // Dedicated Profile Share Function
+        function shareUserProfile() {
+            if (typeof window.agHaptic === 'function') window.agHaptic('light');
+            const usernameEl = document.getElementById('prof-username');
+            const rawUser = usernameEl ? usernameEl.innerText : 'creator';
+            const cleanUser = rawUser.replace(/^@/, '').trim();
+            const displayNameEl = document.getElementById('prof-display-name');
+            const displayName = displayNameEl ? displayNameEl.innerText : cleanUser;
+            const profPicEl = document.getElementById('prof-pic');
+            const avatarUrl = (profPicEl && profPicEl.src && !profPicEl.src.includes('favicon.svg'))
+                ? profPicEl.src
+                : (currentUserPhotos && currentUserPhotos[0] ? currentUserPhotos[0].src : window.location.origin + '/favicon.svg');
+            const profileUrl = `${window.location.origin}/profile.html?username=${encodeURIComponent(cleanUser)}`;
+
+            if (typeof window.openShareModal === 'function') {
+                window.openShareModal({
+                    url: profileUrl,
+                    title: `${displayName}'s Portfolio`,
+                    uploader: cleanUser,
+                    thumbUrl: avatarUrl,
+                    customShareText: `Explore @${cleanUser}'s curated photography portfolio on AfterGlow!`
+                });
+            } else if (typeof window.copyPhotoLink === 'function') {
+                window.copyPhotoLink(profileUrl);
+            }
+        }
+
+        // Global exports for keyboard shortcuts & UI buttons
+        window.shareUserProfile = shareUserProfile;
+        window.shareCurrentProfilePhoto = shareCurrentProfilePhoto;
+        window.downloadCurrentProfilePhoto = downloadCurrentProfilePhoto;
+        window.navigateProfileLightbox = navigateProfileLightbox;
+        window.toggleCurrentProfilePhotoLike = toggleCurrentProfilePhotoLike;
 
         function closeProfileLightbox() {
             const lb = document.getElementById('profileLightbox');
             if (!lb) return;
             lb.classList.remove('modal-active');
+            document.body.classList.remove('lightbox-open');
+            if (typeof window.resetProfileLightboxZoom === 'function') {
+                window.resetProfileLightboxZoom(false);
+            }
             setTimeout(() => { lb.style.display = 'none'; }, 250);
         }
 
@@ -794,10 +1071,61 @@
             if (e.target === this) closeProfileLightbox();
         });
 
-        // Touch & Mouse Drag Swipe Navigation for Profile Lightbox
+        // Touch & Mouse Drag Swipe Navigation + Pinch-to-Zoom for Profile Lightbox
         (function() {
             const stage = document.getElementById('profileLightboxStage');
-            if (!stage) return;
+            const lb = document.getElementById('profileLightbox');
+            const img = document.getElementById('profileLightboxImg');
+            if (!stage || !lb) return;
+
+            let currentScale = 1;
+            let panX = 0;
+            let panY = 0;
+            let isPinching = false;
+            let initialPinchDistance = 0;
+            let initialScale = 1;
+            let isPanning = false;
+            let panStartX = 0;
+            let panStartY = 0;
+            let lastTapTime = 0;
+
+            function applyZoomTransform() {
+                if (!img) return;
+                if (currentScale <= 1.01) {
+                    img.style.transform = 'none';
+                } else {
+                    img.style.transform = `scale(${currentScale}) translate(${panX / currentScale}px, ${panY / currentScale}px)`;
+                }
+            }
+
+            function resetZoom(animated = true) {
+                currentScale = 1;
+                panX = 0;
+                panY = 0;
+                isPinching = false;
+                isPanning = false;
+                if (img) {
+                    if (animated) img.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
+                    else img.style.transition = '';
+                    img.style.transform = 'none';
+                    setTimeout(() => { if (img) img.style.transition = ''; }, 300);
+                }
+            }
+            window.resetProfileLightboxZoom = resetZoom;
+
+            // Desktop double-click to like at click coordinates or reset zoom
+            stage.addEventListener('dblclick', (e) => {
+                if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
+                if (currentScale > 1.1) {
+                    resetZoom(true);
+                } else {
+                    const rect = stage.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    triggerProfileDoubleTapHeart(stage, x, y);
+                    toggleCurrentProfilePhotoLike(true);
+                }
+            });
 
             let touchStartX = 0;
             let touchStartY = 0;
@@ -805,41 +1133,150 @@
 
             stage.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
-                if (e.touches && e.touches[0]) {
+
+                if (e.touches.length === 2) {
+                    isPinching = true;
+                    isTouchSwiping = false;
+                    isPanning = false;
+                    stage.style.transform = '';
+                    lb.style.backgroundColor = '';
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    initialScale = currentScale;
+                    if (img) img.style.transition = '';
+                    return;
+                }
+
+                if (e.touches.length === 1) {
+                    if (currentScale > 1.05) {
+                        isPanning = true;
+                        panStartX = e.touches[0].clientX - panX;
+                        panStartY = e.touches[0].clientY - panY;
+                        if (img) img.style.transition = '';
+                        return;
+                    }
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
                     isTouchSwiping = true;
+                    stage.style.transition = '';
                 }
             }, { passive: true });
 
             stage.addEventListener('touchmove', (e) => {
-                if (!isTouchSwiping || !e.touches || !e.touches[0]) return;
+                if (isPinching && e.touches.length === 2) {
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    if (initialPinchDistance > 0) {
+                        const factor = currentDistance / initialPinchDistance;
+                        currentScale = Math.min(4, Math.max(0.85, initialScale * factor));
+                        applyZoomTransform();
+                    }
+                    return;
+                }
+
+                if (isPanning && e.touches.length === 1 && currentScale > 1.05) {
+                    panX = e.touches[0].clientX - panStartX;
+                    panY = e.touches[0].clientY - panStartY;
+                    const maxPanX = (stage.clientWidth * (currentScale - 1)) / 1.8;
+                    const maxPanY = (stage.clientHeight * (currentScale - 1)) / 1.8;
+                    panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+                    panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+                    applyZoomTransform();
+                    return;
+                }
+
+                if (!isTouchSwiping || !e.touches || !e.touches[0] || currentScale > 1.05) return;
                 const diffX = e.touches[0].clientX - touchStartX;
                 const diffY = e.touches[0].clientY - touchStartY;
+
                 if (Math.abs(diffX) > Math.abs(diffY)) {
                     stage.style.transform = `translateX(${diffX * 0.4}px)`;
+                } else if (diffY > 0) {
+                    const damping = Math.min(diffY * 0.72, 260);
+                    const scale = Math.max(0.78, 1 - diffY / 900);
+                    stage.style.transform = `translateY(${damping}px) scale(${scale})`;
+                    const bgOpacity = Math.max(0.15, 0.94 - (diffY / 420));
+                    lb.style.backgroundColor = `rgba(4, 5, 8, ${bgOpacity})`;
                 }
             }, { passive: true });
 
             stage.addEventListener('touchend', (e) => {
+                if (isPinching) {
+                    isPinching = false;
+                    if (currentScale < 1.05) {
+                        resetZoom(true);
+                    }
+                    return;
+                }
+
+                if (isPanning) {
+                    isPanning = false;
+                    return;
+                }
+
                 if (!isTouchSwiping) return;
                 isTouchSwiping = false;
-                stage.style.transition = 'transform 0.25s ease';
-                stage.style.transform = '';
+
                 if (e.changedTouches && e.changedTouches[0]) {
-                    const diffX = e.changedTouches[0].clientX - touchStartX;
-                    const diffY = e.changedTouches[0].clientY - touchStartY;
-                    if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+                    const touchX = e.changedTouches[0].clientX;
+                    const touchY = e.changedTouches[0].clientY;
+                    const diffX = touchX - touchStartX;
+                    const diffY = touchY - touchStartY;
+
+                    if (Math.abs(diffX) < 18 && Math.abs(diffY) < 18) {
+                        const now = Date.now();
+                        const tapDiff = now - lastTapTime;
+                        if (tapDiff < 320 && tapDiff > 40) {
+                            if (currentScale > 1.1) {
+                                resetZoom(true);
+                            } else {
+                                const rect = stage.getBoundingClientRect();
+                                const x = touchX - rect.left;
+                                const y = touchY - rect.top;
+                                triggerProfileDoubleTapHeart(stage, x, y);
+                                if (typeof window.agHaptic === 'function') window.agHaptic('heart');
+                                toggleCurrentProfilePhotoLike(true);
+                            }
+                            lastTapTime = 0;
+                            return;
+                        } else {
+                            lastTapTime = now;
+                        }
+                    } else if (diffY > 70 && diffY > Math.abs(diffX) * 1.15) {
+                        if (typeof window.agHaptic === 'function') window.agHaptic('dismiss');
+                        stage.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease-out';
+                        stage.style.transform = 'translateY(110vh) scale(0.6)';
+                        stage.style.opacity = '0';
+                        setTimeout(() => {
+                            closeProfileLightbox();
+                            stage.style.transform = '';
+                            stage.style.opacity = '';
+                            stage.style.transition = '';
+                            lb.style.backgroundColor = '';
+                            resetZoom(false);
+                        }, 240);
+                        return;
+                    } else if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+                        if (typeof window.agHaptic === 'function') window.agHaptic('light');
                         if (diffX < 0) navigateProfileLightbox(1);
                         else navigateProfileLightbox(-1);
                     }
                 }
+
+                stage.style.transition = 'transform 0.25s ease';
+                stage.style.transform = '';
+                lb.style.backgroundColor = '';
                 setTimeout(() => { if (stage) stage.style.transition = ''; }, 260);
             }, { passive: true });
 
-            // Desktop Mouse Drag Swipe
+            // Desktop Mouse Drag Swipe & Pan
             let isMouseDown = false;
             let mouseStartX = 0;
+            let mouseStartY = 0;
             let hasDragged = false;
 
             stage.addEventListener('mousedown', (e) => {
@@ -847,15 +1284,30 @@
                 isMouseDown = true;
                 hasDragged = false;
                 mouseStartX = e.clientX;
+                mouseStartY = e.clientY;
                 stage.classList.add('dragging');
             });
 
             window.addEventListener('mousemove', (e) => {
                 if (!isMouseDown) return;
                 const diffX = e.clientX - mouseStartX;
-                if (Math.abs(diffX) > 5) {
+                const diffY = e.clientY - mouseStartY;
+
+                if (Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
                     hasDragged = true;
-                    stage.style.transform = `translateX(${diffX * 0.45}px)`;
+                    if (currentScale > 1.05) {
+                        panX += diffX * 0.6;
+                        panY += diffY * 0.6;
+                        mouseStartX = e.clientX;
+                        mouseStartY = e.clientY;
+                        applyZoomTransform();
+                    } else if (Math.abs(diffX) > Math.abs(diffY)) {
+                        stage.style.transform = `translateX(${diffX * 0.45}px)`;
+                    } else if (diffY > 0) {
+                        const damping = Math.min(diffY * 0.65, 200);
+                        stage.style.transform = `translateY(${damping}px) scale(${Math.max(0.85, 1 - diffY / 900)})`;
+                        lb.style.backgroundColor = `rgba(4, 5, 8, ${Math.max(0.2, 0.94 - (diffY / 400))})`;
+                    }
                 }
             });
 
@@ -865,9 +1317,15 @@
                 stage.classList.remove('dragging');
                 stage.style.transition = 'transform 0.25s ease';
                 stage.style.transform = '';
-                if (hasDragged) {
+                lb.style.backgroundColor = '';
+
+                if (hasDragged && currentScale <= 1.05) {
                     const diffX = e.clientX - mouseStartX;
-                    if (Math.abs(diffX) > 40) {
+                    const diffY = e.clientY - mouseStartY;
+                    if (diffY > 80 && diffY > Math.abs(diffX)) {
+                        closeProfileLightbox();
+                        resetZoom(false);
+                    } else if (Math.abs(diffX) > 40) {
                         if (diffX < 0) navigateProfileLightbox(1);
                         else navigateProfileLightbox(-1);
                     }

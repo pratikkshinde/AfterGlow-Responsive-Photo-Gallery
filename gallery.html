@@ -28,6 +28,15 @@
             </div>
             
             <div class="nav-links" id="navLinks">
+                <div class="nav-drawer-header">
+                    <div class="nav-drawer-brand">
+                        <i class="fas fa-camera-retro"></i>
+                        <span>AfterGlow</span>
+                    </div>
+                    <button type="button" class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
                 <div class="nav-search">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="global-search" placeholder="Search creators...">
@@ -43,6 +52,7 @@
                 <i class="fas fa-bars"></i>
             </div>
         </div>
+        <div class="nav-backdrop" id="navBackdrop"></div>
     </nav>
 
     <!-- Gallery Section -->
@@ -54,10 +64,30 @@
             </div>
 
             <div class="gallery-grid" id="galleryGrid">
-                <!-- Gallery items loaded here dynamically via gallery.js -->
-                <div class="loading">
-                    <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary-light); margin-bottom: 1rem; display: block;"></i>
-                    Loading photography collection...
+                <!-- Skeleton Shimmer Placeholders while collection loads -->
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
+                </div>
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
+                </div>
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
+                </div>
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
+                </div>
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
+                </div>
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
+                </div>
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
+                </div>
+                <div class="gallery-skeleton-card ag-skeleton-shimmer">
+                    <div class="gallery-skeleton-footer"><div class="gallery-skeleton-avatar"></div><div class="gallery-skeleton-handle"></div></div>
                 </div>
             </div>
         </div>
@@ -68,6 +98,19 @@
         <button type="button" class="close-lightbox" aria-label="Close viewer">
             <i class="fas fa-xmark"></i>
         </button>
+        <div class="lightbox-hotkeys-hint">
+            <span class="hk-chip"><kbd>←</kbd><kbd>→</kbd> Navigate</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>L</kbd> Like</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>S</kbd> Share</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>D</kbd> Download</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>F</kbd> Fullscreen</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>Esc</kbd> Close</span>
+        </div>
         <button type="button" class="lightbox-nav-btn prev-btn" id="galleryLightboxPrev" onclick="navigateGalleryLightbox(-1)" aria-label="Previous photograph">
             <i class="fas fa-chevron-left"></i>
         </button>
@@ -81,6 +124,10 @@
             <div class="lightbox-dock-overlay" id="galleryLightboxBottomBar">
                 <div id="lightboxCaption" class="lightbox-dock-left"></div>
                 <div class="lightbox-dock-right">
+                    <button type="button" class="lightbox-icon-btn lightbox-like-btn" id="galleryLightboxLikeBtn" onclick="toggleCurrentGalleryPhotoLike()" title="Like photograph" aria-label="Like">
+                        <i class="far fa-heart" id="galleryLightboxHeartIcon"></i>
+                        <span class="lightbox-like-count" id="galleryLightboxLikeCount" style="display:none;"></span>
+                    </button>
                     <button type="button" class="lightbox-icon-btn" onclick="shareCurrentGalleryPhoto()" title="Share photograph" aria-label="Share">
                         <i class="fas fa-share-nodes"></i>
                     </button>
@@ -100,22 +147,24 @@
                     <i class="fas fa-camera-retro"></i>
                     <span>AfterGlow</span>
                 </div>
-                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top">
-                    Back to top &uarr;
+                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top" title="Back to top">
+                    <span class="back-to-top-text">Back to top</span>
+                    <i class="fas fa-arrow-up"></i>
                 </a>
             </div>
             <div class="footer-bottom-row">
                 <div class="footer-copyright">
-                    Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow. All visual works belong to their respective creators.
+                    <span class="copyright-full">Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow. All visual works belong to their respective creators.</span>
+                    <span class="copyright-short">&copy; 2026 AfterGlow</span>
                 </div>
                 <div class="social-links">
-                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" title="LinkedIn">
                         <i class="fa-brands fa-linkedin-in"></i>
                     </a>
-                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
                         <i class="fa-brands fa-github"></i>
                     </a>
-                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram">
                         <i class="fa-brands fa-instagram"></i>
                     </a>
                 </div>

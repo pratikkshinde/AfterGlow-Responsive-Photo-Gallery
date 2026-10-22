@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="upload-page">
     <!-- Ambient Background Lighting -->
     <div class="ambient-glow ambient-glow-1"></div>
     <div class="ambient-glow ambient-glow-2"></div>
@@ -28,6 +28,15 @@
             </div>
             
             <div class="nav-links" id="navLinks">
+                <div class="nav-drawer-header">
+                    <div class="nav-drawer-brand">
+                        <i class="fas fa-camera-retro"></i>
+                        <span>AfterGlow</span>
+                    </div>
+                    <button type="button" class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
                 <div class="nav-search">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="global-search" placeholder="Search creators...">
@@ -43,6 +52,7 @@
                 <i class="fas fa-bars"></i>
             </div>
         </div>
+        <div class="nav-backdrop" id="navBackdrop"></div>
     </nav>
 
     <!-- Upload Section -->
@@ -51,11 +61,11 @@
             <div class="upload-container">
                 <span class="section-subtitle">Exhibition Submission</span>
                 <h2 class="section-title">Upload Your Photographs</h2>
-                <p class="upload-description">Submit your authentic captures to the community archive. Supported formats: JPEG, PNG, WebP (Up to 5MB per photograph)</p>
+                <p class="upload-description">JPEG, PNG, WebP &bull; Up to 5MB per photo</p>
                 
                 <div class="upload-area" id="uploadArea">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Drag &amp; drop your photographs here, or click to browse</p>
+                    <i class="fas fa-cloud-arrow-up"></i>
+                    <p class="upload-area-instruction"><span class="desktop-only">Drag &amp; drop your photographs here, or </span><span>tap to browse</span></p>
                     <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple>
                     <button class="btn btn-primary" id="browseBtn" type="button">
                         <i class="fas fa-folder-open"></i> Browse Files
@@ -88,22 +98,24 @@
                     <i class="fas fa-camera-retro"></i>
                     <span>AfterGlow</span>
                 </div>
-                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top">
-                    Back to top &uarr;
+                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top" title="Back to top">
+                    <span class="back-to-top-text">Back to top</span>
+                    <i class="fas fa-arrow-up"></i>
                 </a>
             </div>
             <div class="footer-bottom-row">
                 <div class="footer-copyright">
-                    Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow. All visual works belong to their respective creators.
+                    <span class="copyright-full">Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow. All visual works belong to their respective creators.</span>
+                    <span class="copyright-short">&copy; 2026 AfterGlow</span>
                 </div>
                 <div class="social-links">
-                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" title="LinkedIn">
                         <i class="fa-brands fa-linkedin-in"></i>
                     </a>
-                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
                         <i class="fa-brands fa-github"></i>
                     </a>
-                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram">
                         <i class="fa-brands fa-instagram"></i>
                     </a>
                 </div>

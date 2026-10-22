@@ -223,12 +223,37 @@ app.get('/api/user/public/:username', async (req, res) => {
     }
 });
 
+// Get 5 suggested creator profiles for search dropdown
+app.get('/api/users/suggested', async (req, res) => {
+    try {
+        const users = await User.find({})
+            .select('username name full_name bio profile_picture_url')
+            .sort({ created_at: -1 })
+            .limit(5);
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.get('/api/users/search', async (req, res) => {
     try {
-        const q = req.query.q;
-        if (!q) return res.json([]);
-        const users = await User.find({ username: { $regex: q, $options: 'i' } })
-            .select('username profile_picture_url')
+        const q = (req.query.q || '').trim();
+        if (!q) {
+            const suggested = await User.find({})
+                .select('username name full_name bio profile_picture_url')
+                .sort({ created_at: -1 })
+                .limit(5);
+            return res.json(suggested);
+        }
+        const users = await User.find({
+            $or: [
+                { username: { $regex: q, $options: 'i' } },
+                { full_name: { $regex: q, $options: 'i' } },
+                { name: { $regex: q, $options: 'i' } }
+            ]
+        })
+            .select('username name full_name bio profile_picture_url')
             .limit(10);
         res.json(users);
     } catch (err) {
@@ -325,26 +350,39 @@ function broadcastEvent(type, payload = {}) {
 
 // --- PHOTO ROUTES ---
 
+function decodeOriginalFileName(file) {
+    if (!file || !file.originalname) return 'Photograph';
+    try {
+        const decoded = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        if (decoded && !decoded.includes('\uFFFD')) {
+            return decoded;
+        }
+    } catch (e) {}
+    return file.originalname;
+}
+
 // Upload photo
 app.post('/api/photos', verifyToken, upload.single('photo'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No photo uploaded' });
 
     try {
         const fileUrl = await uploadToCloudinary(req.file, 'photo-gallery/uploads');
+        const originalName = decodeOriginalFileName(req.file);
 
         const newPhoto = await Photo.create({
             user_id: req.userId,
             filename: fileUrl,
-            original_name: req.file.originalname
+            original_name: originalName
         });
 
         // Broadcast real-time photo addition to all connected SSE clients
-        const populated = await newPhoto.populate('user_id', 'username');
+        const populated = await newPhoto.populate('user_id', 'username profile_picture_url');
         broadcastEvent('photo_added', {
             photo_id: newPhoto._id,
             src: fileUrl,
-            title: req.file.originalname,
-            username: populated.user_id ? populated.user_id.username : 'Unknown'
+            title: originalName,
+            username: populated.user_id ? populated.user_id.username : 'Unknown',
+            userAvatar: populated.user_id ? populated.user_id.profile_picture_url : null
         });
 
         res.json({ message: 'Photo uploaded successfully', photo_id: newPhoto._id, src: fileUrl });
@@ -354,25 +392,87 @@ app.post('/api/photos', verifyToken, upload.single('photo'), async (req, res) =>
     }
 });
 
+function getOptionalUserId(req) {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) return null;
+    const parts = authHeader.split(' ');
+    const token = parts.length === 2 ? parts[1] : parts[0];
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        return decoded ? decoded.id : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 // Get all photos
 app.get('/api/photos', async (req, res) => {
     try {
+        const requesterId = getOptionalUserId(req);
         const photos = await Photo.find({ deleted_by_user: false })
             .populate('user_id', 'username profile_picture_url')
             .sort({ created_at: -1 })
             .lean();
 
         // Map to expected format
-        const formattedPhotos = photos.map(p => ({
-            id: p._id,
-            src: p.filename,
-            title: p.original_name,
-            date: p.created_at,
-            username: p.user_id ? p.user_id.username : "Unknown",
-            userAvatar: p.user_id ? p.user_id.profile_picture_url : null
-        }));
+        const formattedPhotos = photos.map(p => {
+            const uploaderId = p.user_id ? p.user_id._id.toString() : null;
+            const isUploader = !!(requesterId && uploaderId && requesterId.toString() === uploaderId);
+            const likesArray = Array.isArray(p.likes) ? p.likes : [];
+            const isLiked = !!(requesterId && likesArray.some(uId => uId.toString() === requesterId.toString()));
+
+            return {
+                id: p._id,
+                src: p.filename,
+                title: p.original_name,
+                date: p.created_at,
+                username: p.user_id ? p.user_id.username : "Unknown",
+                userAvatar: p.user_id ? p.user_id.profile_picture_url : null,
+                uploaderId: uploaderId,
+                // Privacy: Only uploader of the image can know how many likes are on the photo
+                likesCount: isUploader ? likesArray.length : null,
+                isUploader: isUploader,
+                isLiked: isLiked
+            };
+        });
 
         res.json(formattedPhotos);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Toggle photo like
+app.post('/api/photos/:id/like', verifyToken, async (req, res) => {
+    try {
+        const photo = await Photo.findById(req.params.id);
+        if (!photo) return res.status(404).json({ error: 'Photo not found' });
+
+        if (!Array.isArray(photo.likes)) {
+            photo.likes = [];
+        }
+
+        const userIdStr = req.userId.toString();
+        const existingIndex = photo.likes.findIndex(uId => uId.toString() === userIdStr);
+        let liked = false;
+
+        if (existingIndex > -1) {
+            photo.likes.splice(existingIndex, 1);
+            liked = false;
+        } else {
+            photo.likes.push(req.userId);
+            liked = true;
+        }
+
+        await photo.save();
+
+        const isUploader = photo.user_id && photo.user_id.toString() === userIdStr;
+
+        res.json({
+            liked,
+            likesCount: isUploader ? photo.likes.length : null,
+            isUploader
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -385,12 +485,19 @@ app.get('/api/photos/me', verifyToken, async (req, res) => {
             .sort({ created_at: -1 })
             .lean();
 
-        const formattedPhotos = photos.map(p => ({
-            id: p._id,
-            src: p.filename,
-            title: p.original_name,
-            date: p.created_at
-        }));
+        const formattedPhotos = photos.map(p => {
+            const likesArray = Array.isArray(p.likes) ? p.likes : [];
+            return {
+                id: p._id,
+                src: p.filename,
+                title: p.original_name,
+                date: p.created_at,
+                uploaderId: req.userId.toString(),
+                isUploader: true,
+                likesCount: likesArray.length,
+                isLiked: likesArray.some(uId => uId.toString() === req.userId.toString())
+            };
+        });
 
         res.json(formattedPhotos);
     } catch (err) {
@@ -400,6 +507,7 @@ app.get('/api/photos/me', verifyToken, async (req, res) => {
 
 app.get('/api/photos/public/:username', async (req, res) => {
     try {
+        const requesterId = getOptionalUserId(req);
         const user = await User.findOne({ username: req.params.username });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -407,12 +515,24 @@ app.get('/api/photos/public/:username', async (req, res) => {
             .sort({ created_at: -1 })
             .lean();
 
-        const formattedPhotos = photos.map(p => ({
-            id: p._id,
-            src: p.filename,
-            title: p.original_name,
-            date: p.created_at
-        }));
+        const formattedPhotos = photos.map(p => {
+            const uploaderId = user._id.toString();
+            const isUploader = !!(requesterId && requesterId.toString() === uploaderId);
+            const likesArray = Array.isArray(p.likes) ? p.likes : [];
+            const isLiked = !!(requesterId && likesArray.some(uId => uId.toString() === requesterId.toString()));
+
+            return {
+                id: p._id,
+                src: p.filename,
+                title: p.original_name,
+                date: p.created_at,
+                username: user.username,
+                uploaderId: uploaderId,
+                isUploader: isUploader,
+                likesCount: isUploader ? likesArray.length : null,
+                isLiked: isLiked
+            };
+        });
 
         res.json(formattedPhotos);
     } catch (err) {

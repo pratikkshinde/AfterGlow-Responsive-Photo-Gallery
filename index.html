@@ -33,6 +33,15 @@
             </div>
 
             <div class="nav-links" id="navLinks">
+                <div class="nav-drawer-header">
+                    <div class="nav-drawer-brand">
+                        <i class="fas fa-camera-retro"></i>
+                        <span>AfterGlow</span>
+                    </div>
+                    <button type="button" class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
                 <div class="nav-search">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="global-search" placeholder="Search creators...">
@@ -48,6 +57,7 @@
                 <i class="fas fa-bars"></i>
             </div>
         </div>
+        <div class="nav-backdrop" id="navBackdrop"></div>
     </nav>
 
     <!-- Hero Section -->
@@ -129,52 +139,30 @@
         <div class="container">
             <span class="section-subtitle">Why AfterGlow</span>
             <h2 class="section-title">A Seamless Experience</h2>
-            <p class="section-description">Engineered for visual fidelity, responsive fluidity, and the pure
-                appreciation of photography.</p>
+            <p class="section-description">Engineered for visual fidelity, responsive fluidity, and the pure appreciation of photography.</p>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-top-row">
-                        <div class="feature-icon-wrapper">
-                            <i class="fas fa-mobile-alt"></i>
-                        </div>
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-mobile-screen"></i>
                     </div>
                     <h3>Fluid &amp; Responsive</h3>
-                    <p>Designed to seamlessly adapt to any high-resolution monitor, tablet, or smartphone display with
-                        precision masonry layout.</p>
-                    <div class="feature-footer">
-                        <span class="feature-pill"><i class="fas fa-check"></i> Adaptive Masonry</span>
-                        <span class="feature-pill"><i class="fas fa-check"></i> Retina Ready</span>
-                    </div>
+                    <p>Adapts seamlessly to retina displays, tablets, and smartphones with precision adaptive layout.</p>
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-top-row">
-                        <div class="feature-icon-wrapper">
-                            <i class="fas fa-bolt"></i>
-                        </div>
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-bolt"></i>
                     </div>
                     <h3>Instant Uploads</h3>
-                    <p>In-memory image streaming and Cloudinary pipeline ensure high-definition photographs process in
-                        seconds with zero delay.</p>
-                    <div class="feature-footer">
-                        <span class="feature-pill"><i class="fas fa-check"></i> Direct Cloudinary</span>
-                        <span class="feature-pill"><i class="fas fa-check"></i> Real-time Sync</span>
-                    </div>
+                    <p>In-memory image streaming and lossless Cloudinary pipeline process captures in seconds with zero delay.</p>
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-top-row">
-                        <div class="feature-icon-wrapper">
-                            <i class="fas fa-eye"></i>
-                        </div>
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-expand"></i>
                     </div>
                     <h3>Cinematic Lightbox</h3>
-                    <p>Experience photography with true-to-life deep black canvas, high dynamic contrast, and
-                        distraction-free viewing controls.</p>
-                    <div class="feature-footer">
-                        <span class="feature-pill"><i class="fas fa-check"></i> Obsidian Backdrop</span>
-                        <span class="feature-pill"><i class="fas fa-check"></i> Creator Credit</span>
-                    </div>
+                    <p>Immersive deep obsidian canvas, double-tap appreciation, and distraction-free viewing controls.</p>
                 </div>
             </div>
         </div>
@@ -203,39 +191,33 @@
     <!-- Footer -->
     <footer>
         <div class="footer-content">
-            <div class="footer-brand">
-                <i class="fas fa-camera-retro"></i>
-                <span>AfterGlow</span>
-            </div>
-            <p class="footer-tagline">A curated digital sanctuary celebrating fine-art photography and shared visual
-                memories.</p>
-            <div class="social-links">
-                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                <a href="#" aria-label="Dribbble"><i class="fab fa-dribbble"></i></a>
-                <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer"
-                    aria-label="Instagram">
-                    <i class="fab fa-instagram"></i>
+            <div class="footer-top-row">
+                <div class="footer-brand">
+                    <i class="fas fa-camera-retro"></i>
+                    <span>AfterGlow</span>
+                </div>
+                <a href="#" class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" aria-label="Back to top" title="Back to top">
+                    <span class="back-to-top-text">Back to top</span>
+                    <i class="fas fa-arrow-up"></i>
                 </a>
             </div>
-            <div class="footer-copyright">
-                Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026
-                AfterGlow. All visual works belong to their respective creators.
+            <div class="footer-bottom-row">
+                <div class="footer-copyright">
+                    <span class="copyright-full">Made with &nbsp;<i class="fas fa-heart" style="color: var(--primary-color);"></i>&nbsp; &copy; 2026 AfterGlow. All visual works belong to their respective creators.</span>
+                    <span class="copyright-short">&copy; 2026 AfterGlow</span>
+                </div>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" title="LinkedIn">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
+                        <i class="fa-brands fa-github"></i>
+                    </a>
+                    <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
             </div>
-            <div class="social-links">
-                <a href="https://www.linkedin.com/in/pratikraj-shinde" target="_blank" rel="noopener noreferrer"
-                    aria-label="LinkedIn">
-                    <i class="fa-brands fa-linkedin-in"></i>
-                </a>
-                <a href="https://github.com/pratikkshinde" target="_blank" rel="noopener noreferrer"
-                    aria-label="GitHub">
-                    <i class="fa-brands fa-github"></i>
-                </a>
-                <a href="https://www.instagram.com/pratikkshinde_/" target="_blank" rel="noopener noreferrer"
-                    aria-label="Instagram">
-                    <i class="fa-brands fa-instagram"></i>
-                </a>
-            </div>
-        </div>
         </div>
     </footer>
 
@@ -244,6 +226,19 @@
         <button type="button" class="close-lightbox" onclick="closeLightbox()" aria-label="Close viewer">
             <i class="fas fa-xmark"></i>
         </button>
+        <div class="lightbox-hotkeys-hint">
+            <span class="hk-chip"><kbd>←</kbd><kbd>→</kbd> Navigate</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>L</kbd> Like</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>S</kbd> Share</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>D</kbd> Download</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>F</kbd> Fullscreen</span>
+            <span class="hk-sep">•</span>
+            <span class="hk-chip"><kbd>Esc</kbd> Close</span>
+        </div>
         <button type="button" class="lightbox-nav-btn prev-btn" id="homeLightboxPrev" onclick="window.navigateHomeLightbox && window.navigateHomeLightbox(-1)" aria-label="Previous photograph">
             <i class="fas fa-chevron-left"></i>
         </button>
@@ -256,6 +251,10 @@
             <div class="lightbox-dock-overlay" id="homeLightboxBottomBar">
                 <div class="lightbox-dock-left" id="lightbox-caption"></div>
                 <div class="lightbox-dock-right">
+                    <button type="button" class="lightbox-icon-btn lightbox-like-btn" id="homeLightboxLikeBtn" onclick="window.toggleCurrentHomePhotoLike && window.toggleCurrentHomePhotoLike()" title="Like photograph" aria-label="Like">
+                        <i class="far fa-heart" id="homeLightboxHeartIcon"></i>
+                        <span class="lightbox-like-count" id="homeLightboxLikeCount" style="display:none;"></span>
+                    </button>
                     <button type="button" class="lightbox-icon-btn" onclick="window.shareCurrentHomePhoto && window.shareCurrentHomePhoto()" title="Share photograph" aria-label="Share">
                         <i class="fas fa-share-nodes"></i>
                     </button>

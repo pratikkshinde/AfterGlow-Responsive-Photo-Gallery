@@ -1,20 +1,80 @@
-// Navigation functionality
-const hamburger = document.getElementById('hamburger');
-const navLinks = document.getElementById('navLinks');
+// Navigation Drawer Controller
+function initNavigationDrawer() {
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    const navBackdrop = document.getElementById('navBackdrop');
+    const navDrawerClose = document.getElementById('navDrawerClose');
 
-if (hamburger) {
-    hamburger.addEventListener('click', () => {
-        navLinks.classList.toggle('active');
-        const icon = hamburger.querySelector('i');
-        if (navLinks.classList.contains('active')) {
-            icon.classList.remove('fa-bars');
-            icon.classList.add('fa-times');
-        } else {
-            icon.classList.remove('fa-times');
-            icon.classList.add('fa-bars');
+    if (!navLinks) return;
+
+    function setDrawerState(open) {
+        navLinks.classList.toggle('active', open);
+        if (navBackdrop) {
+            navBackdrop.classList.toggle('active', open);
+        }
+        document.body.classList.toggle('nav-drawer-open', open);
+
+        if (hamburger) {
+            hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+            const icon = hamburger.querySelector('i');
+            if (icon) {
+                if (open) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        }
+    }
+
+    if (hamburger) {
+        hamburger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = navLinks.classList.contains('active');
+            setDrawerState(!isOpen);
+        });
+    }
+
+    if (navDrawerClose) {
+        navDrawerClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setDrawerState(false);
+        });
+    }
+
+    if (navBackdrop) {
+        navBackdrop.addEventListener('click', () => {
+            setDrawerState(false);
+        });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && navLinks.classList.contains('active')) {
+            setDrawerState(false);
         }
     });
+
+    // Close drawer when a navigation link is clicked (mobile)
+    navLinks.querySelectorAll('a:not(.search-dropdown a)').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 960) {
+                setDrawerState(false);
+            }
+        });
+    });
+
+    // Reset drawer state on desktop resize
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 960 && navLinks.classList.contains('active')) {
+            setDrawerState(false);
+        }
+    }, { passive: true });
 }
+
+initNavigationDrawer();
 
 // Navbar scroll glass blur effect
 window.addEventListener('scroll', () => {
@@ -69,54 +129,195 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Global Search
+// Global Search & Instant Creator Suggestions on Tap
+const CURATED_DEFAULT_CREATORS = [
+    { username: 'pratik_s', name: 'Pratik Shinde', full_name: 'Pratik Shinde', bio: 'Founder & Fine Art Visuals', profile_picture_url: 'uploads/profiles/1775980620187.jpeg' },
+    { username: 'oliver_lens', name: 'Oliver Scott', full_name: 'Oliver Scott', bio: 'Monochrome & Fine Art', profile_picture_url: 'favicon.svg' },
+    { username: 'elena_v', name: 'Elena Vance', full_name: 'Elena Vance', bio: 'Cinematic Portraits', profile_picture_url: 'favicon.svg' },
+    { username: 'marcus_k', name: 'Marcus Kane', full_name: 'Marcus Kane', bio: 'Urban Street Stories', profile_picture_url: 'favicon.svg' },
+    { username: 'sophia_art', name: 'Sophia Chen', full_name: 'Sophia Chen', bio: 'Atmospheric Landscapes', profile_picture_url: 'favicon.svg' }
+];
+
+let cachedSuggestedCreators = null;
+
+async function getSuggestedCreators() {
+    if (cachedSuggestedCreators && cachedSuggestedCreators.length >= 5) {
+        return cachedSuggestedCreators;
+    }
+
+    const seenUsernames = new Set();
+    const suggested = [];
+
+    const addCreator = (u) => {
+        if (!u) return;
+        const rawUsername = u.username || '';
+        const clean = rawUsername.replace(/^@/, '').toLowerCase().trim();
+        if (!clean || clean === 'unknown' || seenUsernames.has(clean)) return;
+        seenUsernames.add(clean);
+        suggested.push({
+            username: clean,
+            name: u.full_name || u.name || clean,
+            full_name: u.full_name || u.name || clean,
+            bio: u.bio || '',
+            profile_picture_url: u.profile_picture_url || ''
+        });
+    };
+
+    // 1. Fetch from server suggested endpoint
+    try {
+        const res = await fetch('/api/users/suggested');
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                data.forEach(addCreator);
+            }
+        }
+    } catch (e) {}
+
+    // 2. If fewer than 5, try server search endpoint
+    if (suggested.length < 5) {
+        try {
+            const res2 = await fetch('/api/users/search');
+            if (res2.ok) {
+                const data2 = await res2.json();
+                if (Array.isArray(data2)) {
+                    data2.forEach(addCreator);
+                }
+            }
+        } catch (e) {}
+    }
+
+    // 3. If still fewer than 5, extract unique creators from photo archive
+    if (suggested.length < 5) {
+        try {
+            const pRes = await fetch('/api/photos');
+            if (pRes.ok) {
+                const photos = await pRes.json();
+                if (Array.isArray(photos)) {
+                    for (const p of photos) {
+                        if (suggested.length >= 5) break;
+                        const u = (p.username || '').replace(/^@/, '').toLowerCase().trim();
+                        if (u && u !== 'unknown' && !seenUsernames.has(u)) {
+                            addCreator({
+                                username: u,
+                                name: p.username || u,
+                                full_name: p.username || u,
+                                profile_picture_url: p.userAvatar || ''
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (e) {}
+    }
+
+    // 4. Fill any remaining slots up to 5 from curated photography creators
+    for (const c of CURATED_DEFAULT_CREATORS) {
+        if (suggested.length >= 5) break;
+        addCreator(c);
+    }
+
+    cachedSuggestedCreators = suggested.slice(0, 5);
+    return cachedSuggestedCreators;
+}
+
+function renderSearchDropdown(dropdown, users, isSuggested = false, query = '') {
+    if (!dropdown) return;
+
+    if (!users || users.length === 0) {
+        if (isSuggested) {
+            dropdown.style.display = 'none';
+        } else {
+            dropdown.innerHTML = `<div class="search-no-results">No creators found for "${query}"</div>`;
+            dropdown.style.display = 'flex';
+        }
+        return;
+    }
+
+    const header = isSuggested
+        ? `<div class="search-dropdown-header"><i class="fas fa-fire"></i> Suggested Creators</div>`
+        : `<div class="search-dropdown-header"><i class="fas fa-search"></i> Creators</div>`;
+
+    const displayList = users.slice(0, 5);
+
+    dropdown.innerHTML = header + displayList.map(u => {
+        const cleanUser = (u.username || 'creator').replace(/^@/, '').toLowerCase();
+        const displayName = u.full_name || u.name || cleanUser;
+        const avatar = u.profile_picture_url || 'favicon.svg';
+
+        return `
+            <a href="profile.html?username=${encodeURIComponent(cleanUser)}" class="search-dropdown-item">
+                <img src="${avatar}" onerror="this.src='favicon.svg'" alt="${cleanUser}">
+                <div class="search-user-info">
+                    <span class="search-user-name">${displayName}</span>
+                    <span class="search-user-handle">@${cleanUser}</span>
+                </div>
+            </a>
+        `;
+    }).join('');
+
+    dropdown.style.display = 'flex';
+}
+
 function initGlobalSearch() {
     const searchInputs = document.querySelectorAll('.global-search');
 
     searchInputs.forEach(input => {
         let debounceTimer;
         const dropdown = input.nextElementSibling;
+        if (!dropdown) return;
+
+        // Display 5 suggested users as soon as user taps or focuses on the search bar
+        const triggerSuggestions = async () => {
+            if (!input.value.trim()) {
+                const suggested = await getSuggestedCreators();
+                if (!input.value.trim()) {
+                    renderSearchDropdown(dropdown, suggested, true);
+                }
+            }
+        };
+
+        // User tap / click / focus triggers instant dropdown of 5 suggested creators
+        input.addEventListener('focus', triggerSuggestions);
+        input.addEventListener('click', triggerSuggestions);
+        input.addEventListener('mousedown', triggerSuggestions);
+        input.addEventListener('touchstart', triggerSuggestions, { passive: true });
 
         input.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             const query = e.target.value.trim();
 
             if (query.length < 1) {
-                dropdown.style.display = 'none';
+                // If cleared or empty, show suggested creators immediately
+                triggerSuggestions();
                 return;
             }
 
             debounceTimer = setTimeout(async () => {
                 try {
-                    const res = await fetch(`/api/users/search?q=${query}`);
+                    const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
                     if (!res.ok) throw new Error('Search failed');
 
                     const users = await res.json();
-                    if (users.length > 0) {
-                        dropdown.innerHTML = users.map(u => `
-                            <a href="profile.html?username=${u.username}">
-                                <img src="${u.profile_picture_url || 'favicon.svg'}" onerror="this.src='favicon.svg'" alt="${u.username}">
-                                @${u.username}
-                            </a>
-                        `).join('');
-                        dropdown.style.display = 'flex';
-                    } else {
-                        dropdown.innerHTML = '<div style="padding:10px 15px; color:rgba(255,255,255,0.5); font-size:0.9rem;">No users found.</div>';
-                        dropdown.style.display = 'flex';
-                    }
+                    renderSearchDropdown(dropdown, users, false, query);
                 } catch (err) {
                     console.error('User search error:', err);
                 }
-            }, 300); // 300ms debounce
+            }, 250);
         });
 
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', (e) => {
+        // Hide dropdown when clicking/tapping outside
+        const handleOutside = (e) => {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
                 dropdown.style.display = 'none';
             }
-        });
+        };
+        document.addEventListener('click', handleOutside);
+        document.addEventListener('touchstart', handleOutside, { passive: true });
     });
+
+    // Prefetch suggested creators in the background for zero-latency tap response
+    getSuggestedCreators().catch(() => {});
 }
 
 // Smooth count-up animation helper
@@ -211,9 +412,16 @@ function updateHomeLightboxDisplay() {
     const lightboxCaption = document.getElementById('lightbox-caption');
     const stage = document.getElementById('homeLightboxStage');
 
+    if (typeof window.resetHomeLightboxZoom === 'function') {
+        window.resetHomeLightboxZoom(false);
+    }
+
     if (lightboxImg) {
         lightboxImg.src = photo.src;
         lightboxImg.alt = photo.title || 'Exhibition photograph';
+        lightboxImg.onerror = () => {
+            if (stage) stage.style.aspectRatio = '4 / 3';
+        };
 
         const applyAspect = () => {
             if (stage && lightboxImg.naturalWidth && lightboxImg.naturalHeight) {
@@ -243,12 +451,192 @@ function updateHomeLightboxDisplay() {
         `;
     }
 
+    // Update Like Button & Privacy-Protected Count
+    const me = (function() {
+        const token = localStorage.getItem('ag_token');
+        if (!token) return null;
+        try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return null; }
+    })();
+
+    const cleanUser = (photo.username || 'creator').replace(/^@/, '').toLowerCase();
+    const myUsername = me && me.username ? me.username.toLowerCase() : '';
+    const myId = me && (me.id || me._id);
+    const isUploader = !!(photo.isUploader || (myId && photo.uploaderId && String(myId) === String(photo.uploaderId)) || (myUsername && myUsername === cleanUser));
+
+    const isLiked = !!(photo.isLiked || localStorage.getItem('ag_photo_liked_' + photo.id) === 'true');
+
+    const likeBtn = document.getElementById('homeLightboxLikeBtn');
+    const heartIcon = document.getElementById('homeLightboxHeartIcon');
+    const countEl = document.getElementById('homeLightboxLikeCount');
+
+    if (likeBtn && heartIcon) {
+        if (isLiked) {
+            likeBtn.classList.add('liked');
+            heartIcon.className = 'fas fa-heart liked';
+        } else {
+            likeBtn.classList.remove('liked');
+            heartIcon.className = 'far fa-heart';
+        }
+
+        if (countEl) {
+            const countVal = (typeof photo.likesCount === 'number') ? photo.likesCount : (Array.isArray(photo.likes) ? photo.likes.length : 0);
+            if (isUploader && countVal > 0) {
+                countEl.textContent = countVal;
+                countEl.style.display = 'inline-block';
+                likeBtn.classList.add('has-count');
+                likeBtn.setAttribute('title', `${countVal} like${countVal === 1 ? '' : 's'}`);
+            } else {
+                countEl.textContent = '';
+                countEl.style.display = 'none';
+                likeBtn.classList.remove('has-count');
+                likeBtn.setAttribute('title', isUploader ? (countVal > 0 ? `${countVal} likes` : 'No likes yet') : (isLiked ? 'Unlike photograph' : 'Like photograph'));
+            }
+        }
+    }
+
     const prevBtn = document.getElementById('homeLightboxPrev');
     const nextBtn = document.getElementById('homeLightboxNext');
     const hasMultiple = currentHomeArchPhotos.length > 1;
     if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
     if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
 }
+
+window.triggerHomeDoubleTapHeart = function(stage, x, y) {
+    if (!stage) return;
+
+    const heart = document.createElement('div');
+    heart.className = 'double-tap-heart';
+    heart.innerHTML = '<i class="fas fa-heart"></i>';
+
+    if (typeof x === 'number' && typeof y === 'number') {
+        heart.style.left = `${x}px`;
+        heart.style.top = `${y}px`;
+    } else {
+        heart.style.left = '50%';
+        heart.style.top = '50%';
+    }
+
+    const randomRot = (Math.random() * 26 - 13).toFixed(1);
+    heart.style.setProperty('--heart-rot', `${randomRot}deg`);
+
+    stage.appendChild(heart);
+
+    setTimeout(() => {
+        if (heart && heart.parentNode) {
+            heart.remove();
+        }
+    }, 850);
+};
+
+window.toggleCurrentHomePhotoLike = async function(forceLike = false) {
+    if (!currentHomeArchPhotos || currentHomeArchPhotos.length === 0) return;
+    const photo = currentHomeArchPhotos[currentHomeArchIndex];
+    if (!photo || !photo.id) return;
+
+    const token = localStorage.getItem('ag_token');
+    if (!token) {
+        if (window.confirm('Please sign in or create an account to like photographs. Go to login?')) {
+            window.location.href = 'auth.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+        }
+        return;
+    }
+
+    const me = (function() {
+        try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return null; }
+    })();
+
+    const cleanUser = (photo.username || 'creator').replace(/^@/, '').toLowerCase();
+    const myUsername = me && me.username ? me.username.toLowerCase() : '';
+    const myId = me && (me.id || me._id);
+    const isUploader = !!(photo.isUploader || (myId && photo.uploaderId && String(myId) === String(photo.uploaderId)) || (myUsername && myUsername === cleanUser));
+
+    const currentlyLiked = !!(photo.isLiked || localStorage.getItem('ag_photo_liked_' + photo.id) === 'true');
+
+    if (forceLike && currentlyLiked) {
+        return;
+    }
+
+    const newLikedState = forceLike ? true : !currentlyLiked;
+    photo.isLiked = newLikedState;
+
+    if (typeof window.agHaptic === 'function') {
+        window.agHaptic(newLikedState ? 'heart' : 'light');
+    }
+
+    if (newLikedState) {
+        localStorage.setItem('ag_photo_liked_' + photo.id, 'true');
+    } else {
+        localStorage.removeItem('ag_photo_liked_' + photo.id);
+    }
+
+    if (isUploader && typeof photo.likesCount === 'number') {
+        photo.likesCount = Math.max(0, photo.likesCount + (newLikedState ? 1 : -1));
+    }
+
+    const likeBtn = document.getElementById('homeLightboxLikeBtn');
+    const heartIcon = document.getElementById('homeLightboxHeartIcon');
+    const countEl = document.getElementById('homeLightboxLikeCount');
+
+    if (likeBtn && heartIcon) {
+        if (newLikedState) {
+            likeBtn.classList.add('liked');
+            heartIcon.className = 'fas fa-heart liked';
+        } else {
+            likeBtn.classList.remove('liked');
+            heartIcon.className = 'far fa-heart';
+        }
+
+        if (countEl) {
+            const curCount = (typeof photo.likesCount === 'number') ? photo.likesCount : 0;
+            if (isUploader && curCount > 0) {
+                countEl.textContent = curCount;
+                countEl.style.display = 'inline-block';
+                likeBtn.classList.add('has-count');
+                likeBtn.setAttribute('title', `${curCount} like${curCount === 1 ? '' : 's'}`);
+            } else {
+                countEl.textContent = '';
+                countEl.style.display = 'none';
+                likeBtn.classList.remove('has-count');
+                likeBtn.setAttribute('title', isUploader ? 'No likes yet' : (newLikedState ? 'Unlike photograph' : 'Like photograph'));
+            }
+        }
+    }
+
+    try {
+        const res = await fetch(`/api/photos/${photo.id}/like`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            photo.isLiked = data.liked;
+            if (data.liked) {
+                localStorage.setItem('ag_photo_liked_' + photo.id, 'true');
+            } else {
+                localStorage.removeItem('ag_photo_liked_' + photo.id);
+            }
+            if (isUploader && typeof data.likesCount === 'number') {
+                photo.likesCount = data.likesCount;
+                if (countEl) {
+                    if (data.likesCount > 0) {
+                        countEl.textContent = data.likesCount;
+                        countEl.style.display = 'inline-block';
+                        likeBtn.classList.add('has-count');
+                    } else {
+                        countEl.textContent = '';
+                        countEl.style.display = 'none';
+                        likeBtn.classList.remove('has-count');
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Home photo like error:', err);
+    }
+};
 
 window.navigateHomeLightbox = function(direction) {
     if (!currentHomeArchPhotos || currentHomeArchPhotos.length <= 1) return;
@@ -271,9 +659,11 @@ window.shareCurrentHomePhoto = function() {
 window.downloadCurrentHomePhoto = function() {
     const photo = currentHomeArchPhotos[currentHomeArchIndex];
     const src = photo ? photo.src : (document.getElementById('lightbox-img')?.src || '');
-    const rawTitle = (photo && photo.title) ? photo.title : 'AfterGlow-Photograph';
-    const safeFilename = rawTitle.replace(/[^a-zA-Z0-9_-]/g, '_') + '.jpg';
-    window.downloadPhotoFile(src, safeFilename);
+    const cleanTitle = (typeof window.formatPhotoDisplayTitle === 'function')
+        ? window.formatPhotoDisplayTitle(photo?.title, photo?.username)
+        : ((photo && photo.title) ? photo.title : 'AfterGlow-Photograph');
+    const safeFilename = cleanTitle.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') + '.jpg';
+    window.downloadPhotoFile(src, safeFilename || 'AfterGlow-Photograph.jpg');
 };
 
 async function initArchCarousel() {
@@ -282,7 +672,9 @@ async function initArchCarousel() {
     if (!archContainer || !wrapper) return;
 
     try {
-        const res = await fetch('/api/photos');
+        const token = localStorage.getItem('ag_token');
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const res = await fetch('/api/photos', { headers });
         if (!res.ok) throw new Error('Failed to fetch arch photos');
         const photos = await res.json();
 
@@ -329,6 +721,7 @@ async function initArchCarousel() {
                     const lightbox = document.getElementById('lightbox');
                     if (lightbox) {
                         lightbox.classList.add('modal-active');
+                        document.body.classList.add('lightbox-open');
                     }
                 } else {
                     // Rotate clicked item to center
@@ -436,6 +829,13 @@ function closeLightbox() {
     if (lightbox) {
         lightbox.classList.remove('modal-active');
     }
+    document.body.classList.remove('lightbox-open');
+    if (typeof window.resetGalleryLightboxZoom === 'function') {
+        window.resetGalleryLightboxZoom(false);
+    }
+    if (typeof window.resetHomeLightboxZoom === 'function') {
+        window.resetHomeLightboxZoom(false);
+    }
 }
 
 document.addEventListener('click', function (e) {
@@ -459,51 +859,212 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// Touch & Mouse Drag Swipe support for home lightbox
+// Touch & Mouse Drag Swipe + Pinch-to-Zoom support for home lightbox
 document.addEventListener('DOMContentLoaded', function () {
     const stage = document.getElementById('homeLightboxStage');
+    const lb = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
     if (stage && document.getElementById('archCarousel')) {
+        let currentScale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPinching = false;
+        let initialPinchDistance = 0;
+        let initialScale = 1;
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        let lastTapTime = 0;
+
+        function applyZoomTransform() {
+            if (!img) return;
+            if (currentScale <= 1.01) {
+                img.style.transform = 'none';
+            } else {
+                img.style.transform = `scale(${currentScale}) translate(${panX / currentScale}px, ${panY / currentScale}px)`;
+            }
+        }
+
+        function resetZoom(animated = true) {
+            currentScale = 1;
+            panX = 0;
+            panY = 0;
+            isPinching = false;
+            isPanning = false;
+            if (img) {
+                if (animated) img.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
+                else img.style.transition = '';
+                img.style.transform = 'none';
+                setTimeout(() => { if (img) img.style.transition = ''; }, 300);
+            }
+        }
+        window.resetHomeLightboxZoom = resetZoom;
+
+        // Desktop double click to like at click coordinates or reset zoom
+        stage.addEventListener('dblclick', (e) => {
+            if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
+            if (currentScale > 1.1) {
+                resetZoom(true);
+            } else {
+                const rect = stage.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                if (window.triggerHomeDoubleTapHeart) window.triggerHomeDoubleTapHeart(stage, x, y);
+                if (window.toggleCurrentHomePhotoLike) window.toggleCurrentHomePhotoLike(true);
+            }
+        });
+
         let touchStartX = 0;
         let touchStartY = 0;
         let isTouchSwiping = false;
 
         stage.addEventListener('touchstart', (e) => {
             if (e.target.closest('.lightbox-dock-overlay') || e.target.closest('.lightbox-nav-btn') || e.target.closest('.close-lightbox')) return;
-            if (e.touches && e.touches[0]) {
+
+            if (e.touches.length === 2) {
+                isPinching = true;
+                isTouchSwiping = false;
+                isPanning = false;
+                stage.style.transform = '';
+                if (lb) lb.style.backgroundColor = '';
+                initialPinchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialScale = currentScale;
+                if (img) img.style.transition = '';
+                return;
+            }
+
+            if (e.touches.length === 1) {
+                if (currentScale > 1.05) {
+                    isPanning = true;
+                    panStartX = e.touches[0].clientX - panX;
+                    panStartY = e.touches[0].clientY - panY;
+                    if (img) img.style.transition = '';
+                    return;
+                }
+
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
                 isTouchSwiping = true;
+                stage.style.transition = '';
             }
         }, { passive: true });
 
         stage.addEventListener('touchmove', (e) => {
-            if (!isTouchSwiping || !e.touches || !e.touches[0]) return;
+            if (isPinching && e.touches.length === 2) {
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (initialPinchDistance > 0) {
+                    const factor = currentDistance / initialPinchDistance;
+                    currentScale = Math.min(4, Math.max(0.85, initialScale * factor));
+                    applyZoomTransform();
+                }
+                return;
+            }
+
+            if (isPanning && e.touches.length === 1 && currentScale > 1.05) {
+                panX = e.touches[0].clientX - panStartX;
+                panY = e.touches[0].clientY - panStartY;
+                const maxPanX = (stage.clientWidth * (currentScale - 1)) / 1.8;
+                const maxPanY = (stage.clientHeight * (currentScale - 1)) / 1.8;
+                panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+                panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+                applyZoomTransform();
+                return;
+            }
+
+            if (!isTouchSwiping || !e.touches || !e.touches[0] || currentScale > 1.05) return;
             const diffX = e.touches[0].clientX - touchStartX;
             const diffY = e.touches[0].clientY - touchStartY;
+
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 stage.style.transform = `translateX(${diffX * 0.4}px)`;
+            } else if (diffY > 0) {
+                const damping = Math.min(diffY * 0.72, 260);
+                const scale = Math.max(0.78, 1 - diffY / 900);
+                stage.style.transform = `translateY(${damping}px) scale(${scale})`;
+                if (lb) {
+                    const bgOpacity = Math.max(0.15, 0.94 - (diffY / 420));
+                    lb.style.backgroundColor = `rgba(4, 5, 8, ${bgOpacity})`;
+                }
             }
         }, { passive: true });
 
         stage.addEventListener('touchend', (e) => {
+            if (isPinching) {
+                isPinching = false;
+                if (currentScale < 1.05) {
+                    resetZoom(true);
+                }
+                return;
+            }
+
+            if (isPanning) {
+                isPanning = false;
+                return;
+            }
+
             if (!isTouchSwiping) return;
             isTouchSwiping = false;
-            stage.style.transition = 'transform 0.25s ease';
-            stage.style.transform = '';
+
             if (e.changedTouches && e.changedTouches[0]) {
-                const diffX = e.changedTouches[0].clientX - touchStartX;
-                const diffY = e.changedTouches[0].clientY - touchStartY;
-                if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+                const touchX = e.changedTouches[0].clientX;
+                const touchY = e.changedTouches[0].clientY;
+                const diffX = touchX - touchStartX;
+                const diffY = touchY - touchStartY;
+
+                if (Math.abs(diffX) < 18 && Math.abs(diffY) < 18) {
+                    const now = Date.now();
+                    const tapDiff = now - lastTapTime;
+                    if (tapDiff < 320 && tapDiff > 40) {
+                        if (currentScale > 1.1) {
+                            resetZoom(true);
+                        } else {
+                            const rect = stage.getBoundingClientRect();
+                            const x = touchX - rect.left;
+                            const y = touchY - rect.top;
+                            if (window.triggerHomeDoubleTapHeart) window.triggerHomeDoubleTapHeart(stage, x, y);
+                            if (window.toggleCurrentHomePhotoLike) window.toggleCurrentHomePhotoLike(true);
+                        }
+                        lastTapTime = 0;
+                        return;
+                    } else {
+                        lastTapTime = now;
+                    }
+                } else if (diffY > 70 && diffY > Math.abs(diffX) * 1.15) {
+                    // Vertical Swipe-to-close triggered!
+                    stage.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease-out';
+                    stage.style.transform = 'translateY(110vh) scale(0.6)';
+                    stage.style.opacity = '0';
+                    setTimeout(() => {
+                        closeLightbox();
+                        stage.style.transform = '';
+                        stage.style.opacity = '';
+                        stage.style.transition = '';
+                        if (lb) lb.style.backgroundColor = '';
+                        resetZoom(false);
+                    }, 240);
+                    return;
+                } else if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
                     if (diffX < 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(1);
                     else if (diffX > 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(-1);
                 }
             }
+
+            stage.style.transition = 'transform 0.25s ease';
+            stage.style.transform = '';
+            if (lb) lb.style.backgroundColor = '';
             setTimeout(() => { if (stage) stage.style.transition = ''; }, 260);
         }, { passive: true });
 
-        // Desktop Mouse Drag Swipe
+        // Desktop Mouse Drag Swipe & Pan
         let isMouseDown = false;
         let mouseStartX = 0;
+        let mouseStartY = 0;
         let hasDragged = false;
 
         stage.addEventListener('mousedown', (e) => {
@@ -511,15 +1072,30 @@ document.addEventListener('DOMContentLoaded', function () {
             isMouseDown = true;
             hasDragged = false;
             mouseStartX = e.clientX;
+            mouseStartY = e.clientY;
             stage.classList.add('dragging');
         });
 
         window.addEventListener('mousemove', (e) => {
             if (!isMouseDown) return;
             const diffX = e.clientX - mouseStartX;
-            if (Math.abs(diffX) > 5) {
+            const diffY = e.clientY - mouseStartY;
+
+            if (Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
                 hasDragged = true;
-                stage.style.transform = `translateX(${diffX * 0.45}px)`;
+                if (currentScale > 1.05) {
+                    panX += diffX * 0.6;
+                    panY += diffY * 0.6;
+                    mouseStartX = e.clientX;
+                    mouseStartY = e.clientY;
+                    applyZoomTransform();
+                } else if (Math.abs(diffX) > Math.abs(diffY)) {
+                    stage.style.transform = `translateX(${diffX * 0.45}px)`;
+                } else if (diffY > 0) {
+                    const damping = Math.min(diffY * 0.65, 200);
+                    stage.style.transform = `translateY(${damping}px) scale(${Math.max(0.85, 1 - diffY / 900)})`;
+                    if (lb) lb.style.backgroundColor = `rgba(4, 5, 8, ${Math.max(0.2, 0.94 - (diffY / 400))})`;
+                }
             }
         });
 
@@ -529,9 +1105,15 @@ document.addEventListener('DOMContentLoaded', function () {
             stage.classList.remove('dragging');
             stage.style.transition = 'transform 0.25s ease';
             stage.style.transform = '';
-            if (hasDragged) {
+            if (lb) lb.style.backgroundColor = '';
+
+            if (hasDragged && currentScale <= 1.05) {
                 const diffX = e.clientX - mouseStartX;
-                if (Math.abs(diffX) > 40) {
+                const diffY = e.clientY - mouseStartY;
+                if (diffY > 80 && diffY > Math.abs(diffX)) {
+                    closeLightbox();
+                    resetZoom(false);
+                } else if (Math.abs(diffX) > 40) {
                     if (diffX < 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(1);
                     else if (diffX > 0 && window.navigateHomeLightbox) window.navigateHomeLightbox(-1);
                 }
@@ -690,8 +1272,35 @@ window.downloadPhotoFile = async function (url, filename = 'AfterGlow-Photograph
     }
 };
 
-// Universal Clipboard Copy Helper with Toast Notification
-window.copyToClipboard = async function (text, message = '✨ Photo link copied to clipboard!') {
+// Universal Mobile Haptic Vibration Feedback Helper
+window.agHaptic = function (type = 'light') {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+            switch (type) {
+                case 'light':
+                    navigator.vibrate(12);
+                    break;
+                case 'medium':
+                    navigator.vibrate(25);
+                    break;
+                case 'heart':
+                    navigator.vibrate([15, 45, 20]);
+                    break;
+                case 'success':
+                    navigator.vibrate([12, 30, 24]);
+                    break;
+                case 'dismiss':
+                    navigator.vibrate(18);
+                    break;
+            }
+        } catch (e) {
+            // Gracefully ignore if device disables vibration
+        }
+    }
+};
+
+// Universal Clipboard Copy Helper with Toast Notification & Haptic Feedback
+window.copyToClipboard = async function (text, message = '✨ Link copied to clipboard!') {
     let copied = false;
     try {
         if (navigator.clipboard && window.isSecureContext) {
@@ -719,6 +1328,10 @@ window.copyToClipboard = async function (text, message = '✨ Photo link copied 
         }
     }
 
+    if (copied && typeof window.agHaptic === 'function') {
+        window.agHaptic('success');
+    }
+
     if (typeof window.showToast === 'function') {
         window.showToast(message, 'success');
     }
@@ -728,7 +1341,7 @@ window.copyToClipboard = async function (text, message = '✨ Photo link copied 
 // Universal Share / Copy Link Helper
 window.copyPhotoLink = function (url) {
     const targetUrl = url || window.location.href;
-    window.copyToClipboard(targetUrl, '✨ Photo link copied to clipboard!');
+    window.copyToClipboard(targetUrl, '✨ Link copied to clipboard!');
 };
 
 // Universal Interactive Glassmorphic Share Modal
@@ -736,14 +1349,83 @@ window.closeShareModal = function () {
     const overlay = document.getElementById('ag-share-overlay');
     if (overlay) {
         overlay.classList.remove('active');
+        if (typeof window.agHaptic === 'function') window.agHaptic('light');
     }
 };
 
-window.openShareModal = function ({ url, title, uploader } = {}) {
+// Universal Photo Display Title Sanitizer: cleans raw filenames, extensions & corrupted characters
+window.formatPhotoDisplayTitle = function (rawTitle, uploader) {
+    const user = (uploader || '').replace(/^@/, '').trim();
+    if (!rawTitle || typeof rawTitle !== 'string') {
+        return user ? `Photograph by @${user}` : 'Curated Photograph';
+    }
+
+    let title = rawTitle.trim();
+
+    // Preserve dedicated profile or portfolio titles
+    if (title.toLowerCase().includes('portfolio')) {
+        return title;
+    }
+
+    // 1. Strip file extension (.jpg, .jpeg, .png, .webp, .gif, .avif, .heic, etc.)
+    title = title.replace(/\.(jpe?g|png|webp|gif|svg|avif|bmp|tiff?|heic|heif|raw|cr2|nef|dng)$/i, '');
+
+    // 2. Remove URL query params / hash fragments if present
+    title = title.split('?')[0].split('#')[0];
+
+    // 3. Strip corrupted / mojibake / unprintable / glitch characters
+    // Matches corrupted bytes like 'õõ¦Bõõ´', unprintable control codes, replacement characters
+    title = title.replace(/[\uFFFD\u0000-\u001F\u007F-\u009Fõ¦´§±\u0080-\u009F]+/g, ' ');
+
+    // 4. Detect camera or auto-generated names (e.g. IMG_..., DSC_..., PXL_..., timestamps)
+    const isCameraOrGeneric = /^(IMG|DSC|PXL|PHOTO|PIC|IMAGE|SCREENSHOT|WP|SAM|DCIM)[-_]?\d+/i.test(title)
+        || /^\d{10,14}$/.test(title)
+        || /^[a-f0-9]{8,}(-[a-f0-9]{4,})*$/i.test(title);
+
+    // Remove long numeric sequences (10+ digits like epoch stamps) or hex hashes
+    title = title.replace(/[-_]\d{10,14}\b/g, '');
+    title = title.replace(/\b\d{10,14}\b/g, '');
+    title = title.replace(/[-_][a-f0-9]{8,}\b/gi, '');
+
+    // 5. Replace separators (underscores, pluses) with spaces
+    title = title.replace(/[_\+]+/g, ' ');
+
+    // 6. Clean up hyphens and collapse multiple spaces
+    title = title.replace(/\s*-\s*/g, ' - ');
+    title = title.replace(/\s+/g, ' ').trim();
+
+    // 7. Check if meaningful or generic
+    const genericWords = /^(image|photo|picture|pic|upload|untitled|camera|capture|snapshot|photograph|afterglow photograph)$/i;
+
+    if (!title || isCameraOrGeneric || genericWords.test(title) || /^[\d\s\-_.]+$/.test(title) || title.length < 2) {
+        return user ? `Photograph by @${user}` : 'Curated Photograph';
+    }
+
+    // Capitalize words if all lowercase or all uppercase
+    if (title === title.toLowerCase() || (title === title.toUpperCase() && title.length > 4)) {
+        title = title.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    return title;
+};
+
+window.openShareModal = function ({ url, title, uploader, thumbUrl, customShareText } = {}) {
+    if (typeof window.agHaptic === 'function') window.agHaptic('light');
     const shareUrl = url || window.location.href;
     const cleanUser = (uploader || 'photographer').replace(/^@/, '');
-    const cleanTitle = title || 'Captivating Photograph';
-    const shareText = `Check out "${cleanTitle}" by @${cleanUser} on AfterGlow!`;
+    const cleanTitle = window.formatPhotoDisplayTitle(title, cleanUser);
+    const isProfile = cleanTitle.toLowerCase().includes('portfolio') || shareUrl.includes('profile.html');
+
+    let defaultShareText;
+    if (isProfile) {
+        defaultShareText = `Explore @${cleanUser}'s curated photography portfolio on AfterGlow!`;
+    } else if (cleanTitle.toLowerCase().startsWith('photograph by')) {
+        defaultShareText = `Check out this photograph by @${cleanUser} on AfterGlow!`;
+    } else {
+        defaultShareText = `Check out "${cleanTitle}" by @${cleanUser} on AfterGlow!`;
+    }
+    const shareText = customShareText || defaultShareText;
+    const previewThumb = thumbUrl || shareUrl;
 
     let overlay = document.getElementById('ag-share-overlay');
     if (!overlay) {
@@ -760,8 +1442,8 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
                     <div class="ag-share-title-wrap">
                         <div class="ag-share-title-icon"><i class="fas fa-share-nodes"></i></div>
                         <div class="ag-share-titles">
-                            <h3>Share Photograph</h3>
-                            <p>Share this visual story across other apps</p>
+                            <h3 id="ag-share-dialog-title">Share Photograph</h3>
+                            <p id="ag-share-dialog-desc">Share this visual story across other apps</p>
                         </div>
                     </div>
                     <button type="button" class="ag-share-close-btn" id="ag-share-close-btn" aria-label="Close dialog">
@@ -783,23 +1465,21 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
                         <div class="ag-share-app-icon"><i class="fab fa-whatsapp"></i></div>
                         <span>WhatsApp</span>
                     </button>
-                    <button type="button" class="ag-share-app-btn share-x" data-app="x" title="Share on X">
-                        <div class="ag-share-app-icon">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                        </div>
-                        <span>X / Twitter</span>
+                    <button type="button" class="ag-share-app-btn share-instagram" data-app="instagram" title="Share on Instagram">
+                        <div class="ag-share-app-icon"><i class="fab fa-instagram"></i></div>
+                        <span>Instagram</span>
                     </button>
-                    <button type="button" class="ag-share-app-btn share-telegram" data-app="telegram" title="Share on Telegram">
-                        <div class="ag-share-app-icon"><i class="fab fa-telegram-plane"></i></div>
-                        <span>Telegram</span>
+                    <button type="button" class="ag-share-app-btn share-snapchat" data-app="snapchat" title="Share on Snapchat">
+                        <div class="ag-share-app-icon"><i class="fab fa-snapchat"></i></div>
+                        <span>Snapchat</span>
                     </button>
                     <button type="button" class="ag-share-app-btn share-facebook" data-app="facebook" title="Share on Facebook">
                         <div class="ag-share-app-icon"><i class="fab fa-facebook-f"></i></div>
                         <span>Facebook</span>
                     </button>
-                    <button type="button" class="ag-share-app-btn share-reddit" data-app="reddit" title="Share on Reddit">
-                        <div class="ag-share-app-icon"><i class="fab fa-reddit-alien"></i></div>
-                        <span>Reddit</span>
+                    <button type="button" class="ag-share-app-btn share-telegram" data-app="telegram" title="Share on Telegram">
+                        <div class="ag-share-app-icon"><i class="fab fa-telegram-plane"></i></div>
+                        <span>Telegram</span>
                     </button>
                     <button type="button" class="ag-share-app-btn share-native" data-app="native" title="More options on your device">
                         <div class="ag-share-app-icon"><i class="fas fa-ellipsis"></i></div>
@@ -810,7 +1490,7 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
                 <div class="ag-share-section-label">Or copy direct link</div>
                 <div class="ag-share-link-box">
                     <input type="text" class="ag-share-input" id="ag-share-input" readonly value="">
-                    <button type="button" class="ag-share-copy-btn" id="ag-share-copy-btn" title="Copy photo link">
+                    <button type="button" class="ag-share-copy-btn" id="ag-share-copy-btn" title="Copy link">
                         <i class="far fa-copy"></i>
                         <span>Copy</span>
                     </button>
@@ -833,10 +1513,17 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
         });
     }
 
+    // Dynamic titles based on whether it is a photo or a creator profile
+    const dialogTitle = overlay.querySelector('#ag-share-dialog-title');
+    if (dialogTitle) dialogTitle.innerText = isProfile ? 'Share Creator Profile' : 'Share Photograph';
+
+    const dialogDesc = overlay.querySelector('#ag-share-dialog-desc');
+    if (dialogDesc) dialogDesc.innerText = isProfile ? 'Share this photography portfolio across other apps' : 'Share this visual story across other apps';
+
     // Populate data
     const thumbEl = overlay.querySelector('#ag-share-thumb');
     if (thumbEl) {
-        thumbEl.src = shareUrl;
+        thumbEl.src = previewThumb;
         thumbEl.onerror = () => { thumbEl.src = 'favicon.svg'; };
     }
     const titleEl = overlay.querySelector('#ag-share-item-title');
@@ -851,7 +1538,7 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
     const copyBtn = overlay.querySelector('#ag-share-copy-btn');
     if (copyBtn) {
         copyBtn.onclick = async () => {
-            await window.copyToClipboard(shareUrl, '✨ Photo link copied to clipboard!');
+            await window.copyToClipboard(shareUrl, isProfile ? '✨ Profile link copied to clipboard!' : '✨ Photo link copied to clipboard!');
             copyBtn.classList.add('copied');
             copyBtn.innerHTML = '<i class="fas fa-check"></i> <span>Copied!</span>';
             setTimeout(() => {
@@ -861,50 +1548,58 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
         };
     }
 
-    // Configure App buttons
+    // Configure 6 App buttons: WhatsApp, Instagram, Snapchat, Facebook, Telegram, More Apps
     const waBtn = overlay.querySelector('.ag-share-app-btn.share-whatsapp');
     if (waBtn) {
         waBtn.onclick = () => {
+            if (typeof window.agHaptic === 'function') window.agHaptic('light');
             const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`;
             window.open(waUrl, '_blank', 'noopener,noreferrer');
         };
     }
 
-    const xBtn = overlay.querySelector('.ag-share-app-btn.share-x');
-    if (xBtn) {
-        xBtn.onclick = () => {
-            const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-            window.open(xUrl, '_blank', 'noopener,noreferrer');
+    const igBtn = overlay.querySelector('.ag-share-app-btn.share-instagram');
+    if (igBtn) {
+        igBtn.onclick = async () => {
+            if (typeof window.agHaptic === 'function') window.agHaptic('light');
+            await window.copyToClipboard(shareUrl, '📸 Link copied! Opening Instagram to share...');
+            setTimeout(() => {
+                window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+            }, 350);
         };
     }
 
-    const tgBtn = overlay.querySelector('.ag-share-app-btn.share-telegram');
-    if (tgBtn) {
-        tgBtn.onclick = () => {
-            const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-            window.open(tgUrl, '_blank', 'noopener,noreferrer');
+    const snapBtn = overlay.querySelector('.ag-share-app-btn.share-snapchat');
+    if (snapBtn) {
+        snapBtn.onclick = () => {
+            if (typeof window.agHaptic === 'function') window.agHaptic('light');
+            const snapUrl = `https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(shareUrl)}`;
+            window.open(snapUrl, '_blank', 'noopener,noreferrer');
         };
     }
 
     const fbBtn = overlay.querySelector('.ag-share-app-btn.share-facebook');
     if (fbBtn) {
         fbBtn.onclick = () => {
+            if (typeof window.agHaptic === 'function') window.agHaptic('light');
             const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
             window.open(fbUrl, '_blank', 'noopener,noreferrer');
         };
     }
 
-    const rdBtn = overlay.querySelector('.ag-share-app-btn.share-reddit');
-    if (rdBtn) {
-        rdBtn.onclick = () => {
-            const rdUrl = `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`;
-            window.open(rdUrl, '_blank', 'noopener,noreferrer');
+    const tgBtn = overlay.querySelector('.ag-share-app-btn.share-telegram');
+    if (tgBtn) {
+        tgBtn.onclick = () => {
+            if (typeof window.agHaptic === 'function') window.agHaptic('light');
+            const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+            window.open(tgUrl, '_blank', 'noopener,noreferrer');
         };
     }
 
     const nativeBtn = overlay.querySelector('.ag-share-app-btn.share-native');
     if (nativeBtn) {
         nativeBtn.onclick = () => {
+            if (typeof window.agHaptic === 'function') window.agHaptic('light');
             if (navigator.share) {
                 navigator.share({
                     title: cleanTitle,
@@ -912,7 +1607,7 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
                     url: shareUrl
                 }).catch(() => {});
             } else {
-                window.copyToClipboard(shareUrl, '✨ Photo link copied to clipboard!');
+                window.copyToClipboard(shareUrl, '✨ Link copied to clipboard!');
             }
         };
     }
@@ -926,3 +1621,124 @@ window.openShareModal = function ({ url, title, uploader } = {}) {
 window.sharePhoto = function (url, title, uploader) {
     window.openShareModal({ url, title, uploader });
 };
+
+// Fullscreen Stage Toggle Helper
+window.toggleStageFullscreen = function (stageEl) {
+    if (!stageEl) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (stageEl.requestFullscreen) {
+            stageEl.requestFullscreen().catch(() => {});
+        } else if (stageEl.webkitRequestFullscreen) {
+            stageEl.webkitRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+    }
+};
+
+// --- Desktop Keyboard Shortcuts & Fullscreen Navigation ---
+document.addEventListener('keydown', (e) => {
+    // Ignore if typing inside form inputs or editable elements
+    const activeTag = document.activeElement ? document.activeElement.tagName : '';
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable)) {
+        return;
+    }
+
+    // Check which lightbox is open
+    const homeLb = document.getElementById('lightbox');
+    const isHomeLbOpen = homeLb && (homeLb.classList.contains('active') || homeLb.classList.contains('modal-active') || getComputedStyle(homeLb).display !== 'none');
+
+    const profLb = document.getElementById('profileLightbox');
+    const isProfLbOpen = profLb && (profLb.classList.contains('modal-active') || getComputedStyle(profLb).display !== 'none');
+
+    const shareOverlay = document.getElementById('ag-share-overlay');
+    const isShareOpen = shareOverlay && shareOverlay.classList.contains('active');
+
+    // Esc closes Share modal first if active
+    if (e.key === 'Escape') {
+        if (isShareOpen) {
+            window.closeShareModal();
+            e.preventDefault();
+            return;
+        }
+        if (document.fullscreenElement) {
+            return;
+        }
+        if (isHomeLbOpen) {
+            if (typeof window.closeLightbox === 'function') window.closeLightbox();
+        } else if (isProfLbOpen) {
+            if (typeof window.closeProfileLightbox === 'function') window.closeProfileLightbox();
+        }
+        return;
+    }
+
+    // Only process shortcuts if a lightbox is actively showing and share dialog is not open
+    if ((!isHomeLbOpen && !isProfLbOpen) || isShareOpen) {
+        return;
+    }
+
+    const key = e.key.toLowerCase();
+
+    // 1. Navigation: ArrowLeft / ArrowRight
+    if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (isHomeLbOpen) {
+            if (typeof window.navigateGalleryLightbox === 'function') window.navigateGalleryLightbox(-1);
+            else if (typeof window.navigateHomeLightbox === 'function') window.navigateHomeLightbox(-1);
+        } else if (isProfLbOpen) {
+            if (typeof window.navigateProfileLightbox === 'function') window.navigateProfileLightbox(-1);
+        }
+    } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (isHomeLbOpen) {
+            if (typeof window.navigateGalleryLightbox === 'function') window.navigateGalleryLightbox(1);
+            else if (typeof window.navigateHomeLightbox === 'function') window.navigateHomeLightbox(1);
+        } else if (isProfLbOpen) {
+            if (typeof window.navigateProfileLightbox === 'function') window.navigateProfileLightbox(1);
+        }
+    }
+    // 2. Fullscreen Toggle: F
+    else if (key === 'f') {
+        e.preventDefault();
+        const stage = isHomeLbOpen 
+            ? (document.getElementById('lightboxStage') || document.getElementById('homeLightboxStage')) 
+            : document.getElementById('profileLightboxStage');
+        if (stage && typeof window.toggleStageFullscreen === 'function') {
+            window.toggleStageFullscreen(stage);
+        }
+    }
+    // 3. Like Toggle: L
+    else if (key === 'l') {
+        e.preventDefault();
+        if (isHomeLbOpen) {
+            if (typeof window.toggleCurrentGalleryPhotoLike === 'function') window.toggleCurrentGalleryPhotoLike();
+            else if (typeof window.toggleCurrentHomePhotoLike === 'function') window.toggleCurrentHomePhotoLike();
+        } else if (isProfLbOpen) {
+            if (typeof window.toggleCurrentProfilePhotoLike === 'function') window.toggleCurrentProfilePhotoLike();
+        }
+    }
+    // 4. Share Modal: S
+    else if (key === 's') {
+        e.preventDefault();
+        if (isHomeLbOpen) {
+            if (typeof window.shareCurrentGalleryPhoto === 'function') window.shareCurrentGalleryPhoto();
+            else if (typeof window.shareCurrentHomePhoto === 'function') window.shareCurrentHomePhoto();
+        } else if (isProfLbOpen) {
+            if (typeof window.shareCurrentProfilePhoto === 'function') window.shareCurrentProfilePhoto();
+        }
+    }
+    // 5. Download: D
+    else if (key === 'd') {
+        e.preventDefault();
+        if (isHomeLbOpen) {
+            if (typeof window.downloadCurrentGalleryPhoto === 'function') window.downloadCurrentGalleryPhoto();
+            else if (typeof window.downloadCurrentHomePhoto === 'function') window.downloadCurrentHomePhoto();
+        } else if (isProfLbOpen) {
+            if (typeof window.downloadCurrentProfilePhoto === 'function') window.downloadCurrentProfilePhoto();
+        }
+    }
+});

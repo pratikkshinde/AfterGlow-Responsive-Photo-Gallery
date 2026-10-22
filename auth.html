@@ -84,15 +84,25 @@
                 </a>
             </div>
             <div class="nav-links" id="navLinks">
+                <div class="nav-drawer-header">
+                    <div class="nav-drawer-brand">
+                        <i class="fas fa-camera-retro"></i>
+                        <span>AfterGlow</span>
+                    </div>
+                    <button type="button" class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
                 <a href="index.html"><i class="fas fa-home"></i> Home</a>
                 <a href="gallery.html"><i class="fas fa-images"></i> Gallery</a>
                 <a href="upload.html"><i class="fas fa-upload"></i> Upload</a>
                 <a href="auth.html" class="active"><i class="fas fa-sign-in-alt"></i> Login</a>
             </div>
-            <div class="hamburger" id="hamburger">
+            <div class="hamburger" id="hamburger" aria-label="Toggle navigation">
                 <i class="fas fa-bars"></i>
             </div>
         </div>
+        <div class="nav-backdrop" id="navBackdrop"></div>
     </nav>
 
     <div class="auth-section">

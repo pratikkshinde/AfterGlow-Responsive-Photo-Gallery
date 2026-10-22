@@ -54,7 +54,8 @@ const photoSchema = new mongoose.Schema({
   filename: { type: String, required: true }, // will store Cloudinary URL
   original_name: { type: String },
   created_at: { type: Date, default: Date.now },
-  deleted_by_user: { type: Boolean, default: false }
+  deleted_by_user: { type: Boolean, default: false },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const Photo = mongoose.models.Photo || mongoose.model('Photo', photoSchema);
